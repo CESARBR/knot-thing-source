@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef __KNOT_SENSOR_H__
-#define __KNOT_SENSOR_H__
+#ifndef __KORE_SENSOR_H__
+#define __KORE_SENSOR_H__
 
 struct sensor_integer {
 	const char	*name;		/* Application defined sensor name */
@@ -62,4 +62,13 @@ struct sensor_raw {
 	int (*write)(void *buffer, int8_t buffer_len);
 };
 
-#endif /* __KNOT_SENSOR_H__ */
+/*
+ * Sensors registration function
+ * For Arduino, these functions should be called from 'setup()'
+ */
+int8_t kore_sensor_register_integer(struct sensor_integer *sensor);
+int8_t kore_sensor_register_float(struct sensor_float *sensor);
+int8_t kore_sensor_register_bool(struct sensor_bool *sensor);
+int8_t kore_sensor_register_raw(struct sensor_raw *sensor);
+
+#endif /* __KORE_SENSOR_H__ */
