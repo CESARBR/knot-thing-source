@@ -9,10 +9,33 @@
 #include <errno.h>
 #include <stdint.h>
 
+#include <stdint.h>
+#include <errno.h>
+
+#include "config.h"
 #include "kore.h"
+
+static struct sensor_integer *isensor[KORE_INTEGER_SENSORS];
+static struct sensor_float *fsensor[KORE_FLOAT_SENSORS];
+static struct sensor_bool *bsensor[KORE_BOOL_SENSORS];
+static struct sensor_raw *rsensor[KORE_RAW_SENSORS];
 
 int8_t kore_init(void)
 {
+	int8_t index;
+
+	for (index = 0; index < KORE_INTEGER_SENSORS; index++)
+		isensor[index] = 0;
+
+	for (index = 0; index < KORE_FLOAT_SENSORS; index++)
+		fsensor[index] = 0;
+
+	for (index = 0; index < KORE_BOOL_SENSORS; index++)
+		bsensor[index] = 0;
+
+	for (index = 0; index < KORE_RAW_SENSORS; index++)
+		rsensor[index] = 0;
+
 	return 0;
 }
 
