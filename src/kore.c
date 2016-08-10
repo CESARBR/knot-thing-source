@@ -6,8 +6,20 @@
  * of the BSD license. See the LICENSE file for details.
  *
  */
+#include <errno.h>
+#include <stdint.h>
 
 #include "kore.h"
+
+int8_t kore_init(void)
+{
+	return 0;
+}
+
+void kore_exit(void)
+{
+
+}
 
 int8_t kore_sensor_register_integer(struct sensor_integer *sensor)
 {
