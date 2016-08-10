@@ -53,20 +53,68 @@ int8_t kore_run(void)
 
 int8_t kore_sensor_register_integer(struct sensor_integer *sensor)
 {
-	return -ENOSYS;
+	static int isensor_num = 0;
+
+	 /*
+	  * If KORE_INTEGER_SENSORS (0) or isensor_num reached
+	  * the user defined amount: return no memory.
+	  */
+	if (isensor_num == KORE_INTEGER_SENSORS)
+		return -ENOMEM;
+
+	isensor[isensor_num] = sensor;
+	isensor_num++;
+
+	return 0;
 }
 
 int8_t kore_sensor_register_float(struct sensor_float *sensor)
 {
-	return -ENOSYS;
+	static int fsensor_num = 0;
+
+	 /*
+	  * If KORE_FLOAT_SENSORS (0) or fsensor_num reached
+	  * the user defined amount: return no memory.
+	  */
+	if (fsensor_num == KORE_FLOAT_SENSORS)
+		return -ENOMEM;
+
+	fsensor[fsensor_num] = sensor;
+	fsensor_num++;
+
+	return 0;
 }
 
 int8_t kore_sensor_register_bool(struct sensor_bool *sensor)
 {
-	return -ENOSYS;
+	static int bsensor_num = 0;
+
+	 /*
+	  * If KORE_BOOL_SENSORS (0) or bsensor_num reached
+	  * the user defined amount: return no memory.
+	  */
+	if (bsensor_num == KORE_BOOL_SENSORS)
+		return -ENOMEM;
+
+	bsensor[bsensor_num] = sensor;
+	bsensor_num++;
+
+	return 0;
 }
 
 int8_t kore_sensor_register_raw(struct sensor_raw *sensor)
 {
-	return -ENOSYS;
+	static int rsensor_num = 0;
+
+	 /*
+	  * If KORE_RAW_SENSORS (0) or rsensor_num reached
+	  * the user defined amount: return no memory.
+	  */
+	if (rsensor_num == KORE_RAW_SENSORS)
+		return -ENOMEM;
+
+	rsensor[rsensor_num] = sensor;
+	rsensor_num++;
+
+	return 0;
 }
