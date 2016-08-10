@@ -21,6 +21,13 @@ void kore_exit(void)
 
 }
 
+int8_t kore_run(void)
+{
+	/* TODO: Monitor events from network and sensors */
+
+	return 0;
+}
+
 int8_t kore_sensor_register_integer(struct sensor_integer *sensor)
 {
 	return -ENOSYS;

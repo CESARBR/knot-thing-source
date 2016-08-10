@@ -62,9 +62,11 @@ struct sensor_raw {
 	int (*write)(void *buffer, int8_t buffer_len);
 };
 
-/* KNOT core (kore) initialization functions */
+/* KNOT core (kore) initialization functions and polling */
 int8_t kore_init(void);
 void kore_exit(void);
+
+int8_t kore_run(void);
 
 /*
  * Sensors registration function
