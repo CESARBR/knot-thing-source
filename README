@@ -1,0 +1,6 @@
+	KNOT Thing for
+
+KNOT Thing is part of KNOT project. It aims to provide abstractions
+for power constrained embedded devices to implement sensors and
+libraries to hide nRF24L01 low level operations. The initial target
+platform is Arduino (aka KNOT nodes).
