@@ -13,8 +13,9 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "config.h"
-#include "kore.h"
+#include "knot_thing_config.h"
+#include "knot_types.h"
+#include "knot_thing_main.h"
 
 static struct sensor_integer *isensor[KORE_INTEGER_SENSORS];
 static struct sensor_float *fsensor[KORE_FLOAT_SENSORS];
