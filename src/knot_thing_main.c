@@ -6,196 +6,178 @@
  * of the BSD license. See the LICENSE file for details.
  *
  */
-#include <errno.h>
-#include <stdint.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 
 #include "knot_thing_config.h"
 #include "knot_types.h"
 #include "knot_thing_main.h"
 
-static struct sensor_integer *isensor[KORE_INTEGER_SENSORS];
-static struct sensor_float *fsensor[KORE_FLOAT_SENSORS];
-static struct sensor_bool *bsensor[KORE_BOOL_SENSORS];
-static struct sensor_raw *rsensor[KORE_RAW_SENSORS];
+// TODO: normalize all returning error codes
 
-static int8_t isensor_num = 0;
-static int8_t fsensor_num = 0;
-static int8_t bsensor_num = 0;
-static int8_t rsensor_num = 0;
+#define KNOT_THING_EMPTY_ITEM		"EMPTY ITEM"
 
-/* Hash used to track value changes: stores last value hash */
-static int32_t ihash[KORE_INTEGER_SENSORS];
-static int32_t fhash[KORE_FLOAT_SENSORS];
-static int8_t bhash[KORE_BOOL_SENSORS];
-static int32_t rhash[KORE_RAW_SENSORS];
+static struct {
+	// schema values
+	uint8_t			value_type;	// KNOT_VALUE_TYPE_* (int, float, bool, raw)
+	uint8_t			unit;		// KNOT_UNIT_*
+	uint16_t		type_id;	// KNOT_TYPE_ID_*
+	const char		*name;		// App defined data item name
+	// data values
+	knot_data_values	last_data;
+	uint8_t			*last_value_raw;
+	// config values
+	uint8_t			event_flags;	// Flags indicating when data will be sent
+	knot_data_values	lower_limit;
+	knot_data_values	upper_limit;
+	// Data read/write functions
+	knot_data_functions	functions;
+} data_items[KNOT_THING_DATA_MAX];
 
-static inline int32_t hash(int32_t value_int, int32_t multiplier,
-							int32_t value_dec)
+static void reset_data_items(void)
 {
-	/* TODO: implement a better function */
+	int8_t index = 0;
 
-	return (value_int ^ multiplier ^ value_dec);
+	for (index = 0; index < KNOT_THING_DATA_MAX; index++)
+	{
+		data_items[index].name					= KNOT_THING_EMPTY_ITEM;
+		data_items[index].type_id				= KNOT_TYPE_ID_INVALID;
+		data_items[index].unit					= KNOT_UNIT_NOT_APPLICABLE;
+		data_items[index].value_type				= KNOT_VALUE_TYPE_INVALID;
+		data_items[index].event_flags				= KNOT_EVT_FLAG_UNREGISTERED;
+
+		data_items[index].last_data.value_f.multiplier		= 1; // as "last_data" is a union, we need just to
+		data_items[index].last_data.value_f.value_int		= 0; // set the "biggest" member
+		data_items[index].last_data.value_f.value_dec		= 0;
+		data_items[index].lower_limit.value_f.multiplier	= 1; // as "lower_limit" is a union, we need just to
+		data_items[index].lower_limit.value_f.value_int		= 0; // set the "biggest" member
+		data_items[index].lower_limit.value_f.value_dec		= 0;
+		data_items[index].upper_limit.value_f.multiplier	= 1; // as "upper_limit" is a union, we need just to
+		data_items[index].upper_limit.value_f.value_int		= 0; // set the "biggest" member
+		data_items[index].upper_limit.value_f.value_dec		= 0;
+		data_items[index].last_value_raw			= NULL;
+
+		data_items[index].functions.int_f.read	= NULL; // as "functions" is a union, we need just to
+		data_items[index].functions.int_f.write	= NULL; // set only one of its members
+	}
 }
 
-int8_t kore_init(void)
+int data_function_is_valid(knot_data_functions *func)
 {
-	int8_t index;
-
-	for (index = 0; index < KORE_INTEGER_SENSORS; index++)
-		isensor[index] = 0;
-
-	for (index = 0; index < KORE_FLOAT_SENSORS; index++)
-		fsensor[index] = 0;
-
-	for (index = 0; index < KORE_BOOL_SENSORS; index++)
-		bsensor[index] = 0;
-
-	for (index = 0; index < KORE_RAW_SENSORS; index++)
-		rsensor[index] = 0;
+	if (func == NULL)
+		return -1;
+		
+	if (func->int_f.read == NULL && func->int_f.write == NULL)
+		return -1;
 
 	return 0;
 }
 
-void kore_exit(void)
+uint8_t item_is_unregistered(uint8_t sensor_id)
+{
+	return (!(data_items[sensor_id].event_flags & KNOT_EVT_FLAG_UNREGISTERED));
+}
+
+int8_t knot_thing_init(void)
+{
+	reset_data_items();
+	return 0;
+}
+
+void knot_thing_exit(void)
 {
 
 }
 
-int8_t kore_run(void)
+int8_t knot_thing_register_raw_data_item(uint8_t sensor_id, const char *name,
+	uint8_t *raw_buffer, uint8_t raw_buffer_len, uint16_t type_id,
+	uint8_t value_type, uint8_t unit, knot_data_functions *func)
 {
-	int32_t hash_value, value_int = 0, value_dec = 0, multiplier = 0;
-	int8_t index, value_bool;
+	if (raw_buffer == NULL)
+		return -1;
 
-	/* TODO: Monitor events from network and sensors */
+	if (raw_buffer_len != KNOT_DATA_RAW_SIZE)
+		return -1;
+
+	if (knot_thing_register_data_item(sensor_id, name, type_id, value_type, 
+		unit, func) != 0)
+		return -1;
+
+	data_items[sensor_id].last_value_raw	= raw_buffer;
+	return 0;
+}
+
+
+int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name,
+	uint16_t type_id, uint8_t value_type, uint8_t unit,
+	knot_data_functions *func)
+{
+	if (sensor_id >= KNOT_THING_DATA_MAX)
+		return -1;
+
+	if ((item_is_unregistered(sensor_id) != 0) || 
+		(knot_schema_is_valid(type_id, value_type, unit) != 0) ||
+		name == NULL || (data_function_is_valid(func) != 0))
+		return -1;
+
+	data_items[sensor_id].name				= name;
+	data_items[sensor_id].type_id				= type_id;
+	data_items[sensor_id].unit				= unit;
+	data_items[sensor_id].value_type			= value_type;
+	// TODO: load flags and limits from persistent storage
+	data_items[sensor_id].event_flags			= KNOT_EVT_FLAG_NONE; // remove KNOT_EVT_FLAG_UNREGISTERED flag
+	data_items[sensor_id].last_data.value_f.multiplier	= 1; // as "last_data" is a union, we need just to
+	data_items[sensor_id].last_data.value_f.value_int	= 0; // set the "biggest" member
+	data_items[sensor_id].last_data.value_f.value_dec	= 0;
+	data_items[sensor_id].lower_limit.value_f.multiplier	= 1; // as "lower_limit" is a union, we need just to
+	data_items[sensor_id].lower_limit.value_f.value_int	= 0; // set the "biggest" member
+	data_items[sensor_id].lower_limit.value_f.value_dec	= 0;
+	data_items[sensor_id].upper_limit.value_f.multiplier	= 1; // as "upper_limit" is a union, we need just to
+	data_items[sensor_id].upper_limit.value_f.value_int	= 0; // set the "biggest" member
+	data_items[sensor_id].upper_limit.value_f.value_dec	= 0;
+	data_items[sensor_id].last_value_raw			= NULL;
+
+	data_items[sensor_id].functions.int_f.read		= func->int_f.read; // as "functions" is a union, we need just to
+	data_items[sensor_id].functions.int_f.write		= func->int_f.write; // set only one of its members
+	return 0;
+}
+
+int8_t knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
+	knot_data_values *lower_limit, knot_data_values *upper_limit)
+{
+	if ((sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(sensor_id) == 0)
+		return -1;
+
+	data_items[sensor_id].event_flags = event_flags;
+	if (lower_limit != NULL)
+	{
+		data_items[sensor_id].lower_limit.value_f.multiplier	= lower_limit->value_f.multiplier; // as "lower_limit" is a union, we need just to
+		data_items[sensor_id].lower_limit.value_f.value_int	= lower_limit->value_f.value_int;  // set the "biggest" member
+		data_items[sensor_id].lower_limit.value_f.value_dec	= lower_limit->value_f.value_dec;
+	}
+
+	if (upper_limit != NULL)
+	{
+		data_items[sensor_id].upper_limit.value_f.multiplier	= upper_limit->value_f.multiplier; // as "upper_limit" is a union, we need just to
+		data_items[sensor_id].upper_limit.value_f.value_int	= upper_limit->value_f.value_int;  // set the "biggest" member
+		data_items[sensor_id].upper_limit.value_f.value_dec	= upper_limit->value_f.value_dec;
+	}
+	// TODO: store flags and limits on persistent storage
+	return 0;
+}
+
+int8_t knot_thing_run(void)
+{
+	/* TODO: Monitor messages from network */
 
 	/*
-	 * For all registered integer sensors: verify if value
-	 * from sensor has changed based on the last value read.
+	 * TODO: For all registered data items: verify if value
+	 * changed according to the events registered.
 	 */
 
-	/* For integer sensors: value changed? */
-	for (index = 0; index < isensor_num; index++) {
-
-		if (!isensor[index]->read)
-			continue;
-
-		if (isensor[index]->read(&value_int, &multiplier) < 0)
-			continue;
-
-		hash_value = hash(value_int, multiplier, 0);
-
-		if (hash_value == ihash[index])
-			continue;
-
-		ihash[index] = hash_value;
-	}
-
-	/* For float sensors: value changed? */
-	for (index = 0; index < fsensor_num; index++) {
-
-		if (!fsensor[index]->read)
-			continue;
-
-		if (fsensor[index]->read(&value_int, &multiplier,
-							&value_dec) < 0)
-			continue;
-
-		hash_value = hash(value_int, multiplier, value_dec);
-		if (hash_value == fhash[index])
-			continue;
-
-		fhash[index] = hash_value;
-	}
-
-	/* For boolean sensors: value changed? */
-	for (index = 0; index < bsensor_num; index++) {
-
-		if (!bsensor[index]->read)
-			continue;
-
-		if (bsensor[index]->read(&value_bool) < 0)
-			continue;
-
-		if (value_bool = bhash[index])
-			continue;
-
-		bhash[index] = value_bool;
-	}
-
-	/* For raw sensors: value changed? */
-	for (index = 0; index < rsensor_num; index++) {
-
-		if (!rsensor[index]->read)
-			continue;
-		/*
-		 * TODO: Postpone raw data change verification. It
-		 * requires a fast hash function for binary data.
-		 */
-	}
-
-	return 0;
-}
-
-int8_t kore_sensor_register_integer(struct sensor_integer *sensor)
-{
-	 /*
-	  * If KORE_INTEGER_SENSORS (0) or isensor_num reached
-	  * the user defined amount: return no memory.
-	  */
-	if (isensor_num == KORE_INTEGER_SENSORS)
-		return -ENOMEM;
-
-	isensor[isensor_num] = sensor;
-	isensor_num++;
-
-	return 0;
-}
-
-int8_t kore_sensor_register_float(struct sensor_float *sensor)
-{
-	 /*
-	  * If KORE_FLOAT_SENSORS (0) or fsensor_num reached
-	  * the user defined amount: return no memory.
-	  */
-	if (fsensor_num == KORE_FLOAT_SENSORS)
-		return -ENOMEM;
-
-	fsensor[fsensor_num] = sensor;
-	fsensor_num++;
-
-	return 0;
-}
-
-int8_t kore_sensor_register_bool(struct sensor_bool *sensor)
-{
-	 /*
-	  * If KORE_BOOL_SENSORS (0) or bsensor_num reached
-	  * the user defined amount: return no memory.
-	  */
-	if (bsensor_num == KORE_BOOL_SENSORS)
-		return -ENOMEM;
-
-	bsensor[bsensor_num] = sensor;
-	bsensor_num++;
-
-	return 0;
-}
-
-int8_t kore_sensor_register_raw(struct sensor_raw *sensor)
-{
-	 /*
-	  * If KORE_RAW_SENSORS (0) or rsensor_num reached
-	  * the user defined amount: return no memory.
-	  */
-	if (rsensor_num == KORE_RAW_SENSORS)
-		return -ENOMEM;
-
-	rsensor[rsensor_num] = sensor;
-	rsensor_num++;
 
 	return 0;
 }

@@ -7,14 +7,5 @@
  *
  */
 
-/* Use defined: Amount of integer sensors */
-#define KORE_INTEGER_SENSORS		1
-
-/* Use defined: Amount of float sensors */
-#define KORE_FLOAT_SENSORS		1
-
-/* Use defined: Amount of bool sensors */
-#define KORE_BOOL_SENSORS		1
-
-/* Use defined: Amount of raw sensors */
-#define KORE_RAW_SENSORS		1
+/* Use defined: Thing amount of data source/sinks */
+#define KNOT_THING_DATA_MAX		5
