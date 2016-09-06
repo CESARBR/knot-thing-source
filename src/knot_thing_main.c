@@ -171,13 +171,109 @@ int8_t knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
 
 int8_t knot_thing_run(void)
 {
+	uint8_t i = 0, uint8_val = 0, comparison = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];
+	int32_t int32_val = 0, multiplier = 0;
+	uint32_t uint32_val = 0;
 	/* TODO: Monitor messages from network */
 
 	/*
-	 * TODO: For all registered data items: verify if value
+	 * For all registered data items: verify if value
 	 * changed according to the events registered.
 	 */
 
+	// TODO: add timer events
+	for (i = 0; i < KNOT_THING_DATA_MAX; i++)
+	{
+		if (data_items[i].value_type == KNOT_VALUE_TYPE_RAW) 
+		{
+			// Raw supports only KNOT_EVT_FLAG_CHANGE
+			if ((KNOT_EVT_FLAG_CHANGE & data_items[i].event_flags) == 0)
+				continue;
+
+			if (data_items[i].functions.raw_f.read == NULL)
+				continue;
+
+			if (data_items[i].last_value_raw == NULL)
+				continue;
+
+			if (data_items[i].functions.raw_f.read(&uint8_val, uint8_buffer) < 0)
+				continue;
+
+			if (uint8_val != KNOT_DATA_RAW_SIZE)
+				continue;
+			
+			if (memcmp(data_items[i].last_value_raw, uint8_buffer, KNOT_DATA_RAW_SIZE) == 0)
+				continue;
+
+			memcpy(data_items[i].last_value_raw, uint8_buffer, KNOT_DATA_RAW_SIZE);
+			// TODO: Send message (as raw is not in last_data structure)
+			continue; // Raw actions end here
+		}
+		else if (data_items[i].value_type == KNOT_VALUE_TYPE_BOOL)
+		{
+			if (data_items[i].functions.bool_f.read == NULL)
+				continue;
+
+			if (data_items[i].functions.bool_f.read(&uint8_val) < 0)
+				continue;
+
+			if (uint8_val != data_items[i].last_data.value_b.value)
+			{
+				comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[i].event_flags);
+				data_items[i].last_data.value_b.value = uint8_val;
+			}
+
+		}
+		else if (data_items[i].value_type == KNOT_VALUE_TYPE_INT)
+		{
+			if (data_items[i].functions.int_f.read == NULL)
+				continue;
+
+			if (data_items[i].functions.int_f.read(&int32_val, &multiplier) < 0)
+				continue;
+
+			// TODO: add multiplier to comparison
+			if (int32_val < data_items[i].lower_limit.value_i.value)
+				comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[i].event_flags);
+			else if (int32_val > data_items[i].upper_limit.value_i.value)
+				comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[i].event_flags);
+			if (int32_val != data_items[i].last_data.value_i.value)
+				comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[i].event_flags);
+
+			data_items[i].last_data.value_i.value = int32_val;
+			data_items[i].last_data.value_i.multiplier = multiplier;
+		}
+		else if (data_items[i].value_type == KNOT_VALUE_TYPE_FLOAT)
+		{
+			if (data_items[i].functions.float_f.read == NULL)
+				continue;
+
+			if (data_items[i].functions.float_f.read(&int32_val, &uint32_val, &multiplier) < 0)
+				continue;
+
+			// TODO: add multiplier and decimal part to comparison
+			if (int32_val < data_items[i].lower_limit.value_f.value_int)
+				comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[i].event_flags);
+			else if (int32_val > data_items[i].upper_limit.value_f.value_int)
+				comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[i].event_flags);
+			if (int32_val != data_items[i].last_data.value_f.value_int)
+				comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[i].event_flags);
+
+			data_items[i].last_data.value_f.value_int = int32_val;
+			data_items[i].last_data.value_f.value_dec = uint32_val;
+			data_items[i].last_data.value_f.multiplier = multiplier;
+		}
+		else // This data item is not registered with a valid value type
+		{
+			continue;
+		}
+
+		// Nothing changed
+		if (comparison == 0)
+			continue;
+
+		// TODO: If something changed, send message
+	}
 
 	return 0;
 }
