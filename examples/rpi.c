@@ -9,8 +9,10 @@
 
 /*
  * Build instructions:
- * gcc $(pkg-config --cflags --libs glib-2.0) -Isrc -Iinclude \
- * -o examples/rpi src/kore.c examples/rpi.c
+ * gcc $(pkg-config --cflags --libs glib-2.0) -Isrc -I<path to protocol>/knot-protocol-source/src \
+ * -o examples/rpi src/knot_thing_main.c examples/rpi.c <path to protocol>/knot-protocol-source/src/knot_protocol.c 
+ *
+ * PS: Knot Thing code depends on knot_protocol, so we need to compile it also.
  */
 
 #include <stdio.h>
@@ -19,10 +21,11 @@
 #include <string.h>
 #include <glib.h>
 
-#include "config.h"
-#include "kore.h"
+#include "knot_thing_main.h"
+#include "knot_types.h"
 
 static GMainLoop *main_loop;
+static int32_t speed_value = 0;
 
 static void sig_term(int sig)
 {
@@ -31,46 +34,65 @@ static void sig_term(int sig)
 
 static int speed_read(int32_t *val, int32_t *multiplier)
 {
-	static int32_t cvalue = 0;
 
-	*val = cvalue++;
-	fprintf(stdout, "read(): %d\n", *val);
+	*val = speed_value++;
+	*multiplier = 1;
+	printf("speed_read(): %d\n", *val);
+	return 0;
 }
 
-struct sensor_integer isensor = {
-	.name = "Speed",
-	.sensor_id = 1,
-	.type_id = 0x0013,	/* KNOT_TYPE_ID_SPEED */
-	.unit = 0x03,		/* KNOT_UNIT_SPEED_KMH */
-	.read = speed_read,
-};
+static int speed_write(int32_t *val, int32_t *multiplier)
+{
+	speed_value = *val;
+	printf("speed_write(): %d\n", *val);
+	return 0;
+}
 
 static gboolean loop(gpointer user_data)
 {
-	kore_run();
+	knot_thing_run();
 
 	return TRUE;
 }
 
+#define SPEED_SENSOR_ID		3
+#define SPEED_SENSOR_NAME	"Speed Sensor"
+
 int main(int argc, char *argv[])
 {
-	int err, timeout_id;
-
 	/*
-	 * RPi fake speed sensor. This example shows how 'kore' (KNOT
-	 * core) should be used to register and implement sensor
+	 * RPi fake speed sensor. This example shows how KNOT Thing
+	 * should be used to register and implement sensor
 	 * read/write callbacks.
 	 */
+
+	int err, timeout_id;
+
+	knot_data_functions functions;
+	functions.int_f.read = speed_read;
+	functions.int_f.write = NULL;
+
+	knot_data_values lower_limit, upper_limit;
+	lower_limit.value_i.value = 5;
+	lower_limit.value_i.multiplier = 1;
+	upper_limit.value_i.value = 10;
+	upper_limit.value_i.multiplier = 1;
 
 	signal(SIGTERM, sig_term);
 	signal(SIGINT, sig_term);
 	signal(SIGPIPE, SIG_IGN);
 
 	main_loop = g_main_loop_new(NULL, FALSE);
+	printf("Starting...\n");
+	knot_thing_init();
 
 	/* Register an integer sensor: should be called from Arduino setup()  */
-	kore_init();
-	kore_sensor_register_integer(&isensor);
+	knot_thing_register_data_item(SPEED_SENSOR_ID, SPEED_SENSOR_NAME, KNOT_TYPE_ID_SPEED, 
+	KNOT_VALUE_TYPE_INT, KNOT_UNIT_SPEED_MS, &functions);
+
+	/* Configure the sensor triggers */
+	knot_thing_config_data_item(SPEED_SENSOR_ID, (KNOT_EVT_FLAG_LOWER_THRESHOLD|KNOT_EVT_FLAG_UPPER_THRESHOLD), 
+	&lower_limit, &upper_limit);
 
 	/* Calls loop() each 1 seconds: simulates Arduino loop function */
 	timeout_id = g_timeout_add_seconds(1, loop, NULL);
@@ -80,6 +102,8 @@ int main(int argc, char *argv[])
 	g_source_remove(timeout_id);
 
 	g_main_loop_unref(main_loop);
+
+	knot_thing_exit();
 
 	return 0;
 }
