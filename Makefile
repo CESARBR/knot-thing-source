@@ -29,7 +29,7 @@ KNOT_THING_BUILD_DIR = build
 # TODO: Change branch to release tag
 KNOT_PROTOCOL_LIB_VERSION = devel_tgfb_KNOT-205
 KNOT_PROTOCOL_LIB_REPO = knot-protocol-source
-KNOT_PROTOCOL_LIB_SITE = git@github.com:CESARBR/$(KNOT_PROTOCOL_LIB_REPO).git
+KNOT_PROTOCOL_LIB_SITE = https://github.com/CESARBR/$(KNOT_PROTOCOL_LIB_REPO).git
 KNOT_PROTOCOL_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_PROTOCOL_LIB_REPO)/src
 
 # TODO: add knot hal lib to the makefile
