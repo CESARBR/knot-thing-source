@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-#include "knot_protocol.h"
+#include "knot_thing_protocol.h"
 
 typedef int (*intDataFunction)		(int32_t *val, int32_t *multiplier);
 typedef int (*floatDataFunction)	(int32_t *val_int, uint32_t *val_dec, int32_t *multiplier);
@@ -48,29 +48,6 @@ typedef union __attribute__ ((packed)) {
 	knot_raw_functions	raw_f;
 } knot_data_functions;
 
-typedef struct __attribute__ ((packed)) {
-	int32_t			multiplier;
-	int32_t			value_int;
-	uint32_t		value_dec;
-} knot_data_values_float;
-
-typedef struct __attribute__ ((packed)) {
-	int32_t			multiplier;
-	int32_t			value;
-} knot_data_values_int;
-
-typedef struct __attribute__ ((packed)) {
-	uint8_t			value;
-} knot_data_values_bool;
-
-typedef union __attribute__ ((packed)) {
-	knot_data_values_int value_i;
-	knot_data_values_float value_f;
-	knot_data_values_bool value_b;
-} knot_data_values;
-
-
-
 /* KNOT Thing main initialization functions and polling */
 int8_t	knot_thing_init(void);
 void	knot_thing_exit(void);
@@ -87,7 +64,7 @@ int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name, uint16
 	uint8_t value_type, uint8_t unit, knot_data_functions *func);
 
 int8_t knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
-	knot_data_values *lower_limit, knot_data_values *upper_limit);
+	knot_value_types *lower_limit, knot_value_types *upper_limit);
 
 #ifdef __cplusplus
 }
