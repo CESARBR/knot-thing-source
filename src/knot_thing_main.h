@@ -49,7 +49,7 @@ typedef union __attribute__ ((packed)) {
 } knot_data_functions;
 
 /* KNOT Thing main initialization functions and polling */
-int8_t	knot_thing_init(void);
+int8_t	knot_thing_init(const int protocol, const char *thing_name);
 void	knot_thing_exit(void);
 int8_t	knot_thing_run(void);
 

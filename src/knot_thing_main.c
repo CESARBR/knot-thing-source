@@ -79,7 +79,7 @@ uint8_t item_is_unregistered(uint8_t sensor_id)
 	return (!(data_items[sensor_id].config.event_flags & KNOT_EVT_FLAG_UNREGISTERED));
 }
 
-int8_t knot_thing_init(void)
+int8_t knot_thing_init(const int protocol, const char *thing_name)
 {
 	reset_data_items();
 	return 0;
