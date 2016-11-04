@@ -8,6 +8,7 @@
  */
 
 #include "knot_thing_protocol.h"
+#include "storage.h"
 
 /*KNoT client storage mapping */
 #define KNOT_UUID_FLAG_ADDR		0
@@ -28,9 +29,11 @@
 #define STATE_MAX			(STATE_ERROR+1)
 
 static uint8_t enable_run = 0;
+static char uuid[KNOT_PROTOCOL_UUID_LEN];
+static char token[KNOT_PROTOCOL_TOKEN_LEN];
 
 int knot_thing_protocol_init(uint8_t protocol, data_function read,
-						data_function write)
+							data_function write)
 {
 	//TODO: open socket
 	enable_run = 1;
@@ -46,7 +49,6 @@ int knot_thing_protocol_run(void)
 {
 	static uint8_t state = STATE_DISCONNECTED;
 	uint8_t uuid_flag = 0, token_flag = 0;
-	knot_msg msg = {0};
 
 	if (enable_run == 0)
 		return -1;
@@ -61,10 +63,24 @@ int knot_thing_protocol_run(void)
 	case STATE_CONNECTING:
 		//TODO: verify connection status, if not connected,
 		//	goto STATE_ERROR
-		//TODO: verify UUID & TOKEN storage
-		//	goto STATE_AUTHENTICATING or STATE_REGISTERING
-		//	depending on that.
-		state = STATE_REGISTERING;
+		/*
+		 * uuid/token flags indicate whether they are
+		 * stored in EEPROM or not
+		 */
+		hal_storage_read(KNOT_UUID_FLAG_ADDR, &uuid_flag,
+						KNOT_UUID_FLAG_LEN);
+		hal_storage_read(KNOT_TOKEN_FLAG_ADDR, &token_flag,
+						KNOT_TOKEN_FLAG_LEN);
+
+		if(uuid_flag && token_flag) {
+			hal_storage_read(KNOT_UUID_ADDR, uuid,
+						KNOT_PROTOCOL_UUID_LEN);
+			hal_storage_read(KNOT_TOKEN_ADDR, token,
+					KNOT_PROTOCOL_TOKEN_LEN);
+
+			state = STATE_AUTHENTICATING;
+		} else
+			state = STATE_REGISTERING;
 	break;
 
 	case STATE_AUTHENTICATING:
