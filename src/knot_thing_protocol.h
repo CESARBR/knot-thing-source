@@ -18,8 +18,8 @@ extern "C" {
 
 typedef int (*data_function)(uint8_t sensor_id, knot_data *data);
 
-int knot_thing_protocol_init(uint8_t protocol, data_function read,
-						 data_function write);
+int knot_thing_protocol_init(uint8_t protocol, const char *thing_name,
+				data_function read, data_function write);
 void knot_thing_protocol_exit(void);
 int knot_thing_protocol_run(void);
 
