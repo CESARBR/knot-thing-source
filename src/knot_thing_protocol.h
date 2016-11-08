@@ -18,10 +18,12 @@ extern "C" {
 
 typedef int (*data_function)(uint8_t sensor_id, knot_data *data);
 typedef int (*schema_function)(uint8_t sensor_id, knot_msg_schema *schema);
+typedef int (*config_function)(uint8_t sensor_id, uint8_t event_flags,
+		knot_value_types *lower_limit, knot_value_types *upper_limit);
 
 int knot_thing_protocol_init(uint8_t protocol, const char *thing_name,
 				data_function read, data_function write,
-							schema_function schema);
+				schema_function schema, config_function config);
 void knot_thing_protocol_exit(void);
 int knot_thing_protocol_run(void);
 
