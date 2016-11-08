@@ -176,6 +176,37 @@ int8_t knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
 	return 0;
 }
 
+int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
+{
+	knot_msg_schema entry;
+
+	memset(&entry, 0, sizeof(entry));
+
+	msg->hdr.type = KNOT_MSG_SCHEMA;
+
+	if (data_items[i].name == KNOT_THING_EMPTY_ITEM)
+		return -1;
+
+	msg->sensor_id = i;
+	entry.values.value_type = data_items[i].value_type;
+	entry.values.unit = data_items[i].unit;
+	entry.values.type_id = data_items[i].type_id;
+	strncpy(entry.values.name, data_items[i].name,
+						sizeof(entry.values.name));
+
+	msg->hdr.payload_len = sizeof(entry.values) + sizeof(entry.sensor_id);
+
+	memcpy(&msg->values, &entry.values, sizeof(msg->values));
+	/*
+	 * Every time a data item is registered we must update the max
+	 * number of sensor_id so we know when schema ends;
+	 */
+	if (i == max_sensor_id)
+		msg->hdr.type = KNOT_MSG_SCHEMA | KNOT_MSG_SCHEMA_FLAG_END;
+
+	return 0;
+}
+
 int8_t knot_thing_run(void)
 {
 	uint8_t i = 0, uint8_val = 0, comparison = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];

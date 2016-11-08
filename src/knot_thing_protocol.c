@@ -38,13 +38,15 @@
 #define MIN(a,b)			(((a) < (b)) ? (a) : (b))
 #endif
 
-static uint8_t enable_run = 0;
+static uint8_t enable_run = 0, schema_sensor_id = 0;
 static char uuid[KNOT_PROTOCOL_UUID_LEN];
 static char token[KNOT_PROTOCOL_TOKEN_LEN];
 static char device_name[KNOT_PROTOCOL_DEVICE_NAME_LEN];
+static schema_function schemaf;
 
 int knot_thing_protocol_init(uint8_t protocol, const char *thing_name,
-					data_function read, data_function write)
+					data_function read, data_function write,
+							schema_function schema)
 {
 	int len;
 
@@ -54,6 +56,7 @@ int knot_thing_protocol_init(uint8_t protocol, const char *thing_name,
 	//TODO: open socket
 	strncpy(device_name, thing_name, len);
 	enable_run = 1;
+	schemaf = schema;
 }
 
 void knot_thing_protocol_exit(void)
