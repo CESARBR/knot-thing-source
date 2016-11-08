@@ -207,6 +207,69 @@ int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
 	return 0;
 }
 
+static int data_item_read(uint8_t sensor_id, knot_msg_data *data)
+{
+	uint8_t uint8_val = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];
+	int32_t int32_val = 0, multiplier = 0;
+	uint32_t uint32_val = 0;
+	int len;
+
+	if (data_items[sensor_id].name == KNOT_THING_EMPTY_ITEM)
+		return -1;
+
+	switch (data_items[sensor_id].value_type) {
+	case KNOT_VALUE_TYPE_RAW:
+		if (data_items[sensor_id].functions.raw_f.read == NULL)
+			return -1;
+		if (data_items[sensor_id].functions.raw_f.read(&uint8_val, uint8_buffer) < 0)
+			return -1;
+
+		len = sizeof(data->payload.raw);
+		memcpy(data->payload.raw, uint8_buffer, len);
+		data->hdr.payload_len = len;
+		break;
+	case KNOT_VALUE_TYPE_BOOL:
+		if (data_items[sensor_id].functions.bool_f.read == NULL)
+			return -1;
+		if (data_items[sensor_id].functions.bool_f.read(&uint8_val) < 0)
+			return -1;
+
+		len = sizeof(data->payload.values.val_b);
+		data->payload.values.val_b = uint8_val;
+		data->hdr.payload_len = len;
+		break;
+	case KNOT_VALUE_TYPE_INT:
+		if (data_items[sensor_id].functions.int_f.read == NULL)
+			return -1;
+		if (data_items[sensor_id].functions.int_f.read(&int32_val, &multiplier) < 0)
+			return -1;
+
+		len = sizeof(data->payload.values.val_i);
+		data->payload.values.val_i.value = int32_val;
+		data->payload.values.val_i.multiplier = multiplier;
+		data->hdr.payload_len = len;
+		break;
+	case KNOT_VALUE_TYPE_FLOAT:
+		if (data_items[sensor_id].functions.float_f.read == NULL)
+			return -1;
+
+		if (data_items[sensor_id].functions.float_f.read(&int32_val, &uint32_val, &multiplier) < 0)
+			return -1;
+
+		len = sizeof(data->payload.values.val_f);
+		data->payload.values.val_f.value_int = int32_val;
+		data->payload.values.val_f.value_dec = uint32_val;
+		data->payload.values.val_f.multiplier = multiplier;
+		data->hdr.payload_len = len;
+		break;
+	default:
+		return -1;
+		break;
+	}
+
+	return 0;
+}
+
 int8_t knot_thing_run(void)
 {
 	uint8_t i = 0, uint8_val = 0, comparison = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];
