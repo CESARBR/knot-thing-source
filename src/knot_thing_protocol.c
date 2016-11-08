@@ -44,6 +44,8 @@ static char uuid[KNOT_PROTOCOL_UUID_LEN];
 static char token[KNOT_PROTOCOL_TOKEN_LEN];
 static char device_name[KNOT_PROTOCOL_DEVICE_NAME_LEN];
 static schema_function schemaf;
+static data_function thing_read;
+static data_function thing_write;
 
 int knot_thing_protocol_init(uint8_t protocol, const char *thing_name,
 					data_function read, data_function write,
@@ -58,6 +60,8 @@ int knot_thing_protocol_init(uint8_t protocol, const char *thing_name,
 	strncpy(device_name, thing_name, len);
 	enable_run = 1;
 	schemaf = schema;
+	thing_read = read;
+	thing_write = write;
 }
 
 void knot_thing_protocol_exit(void)
@@ -188,6 +192,8 @@ int knot_thing_protocol_run(void)
 	static uint8_t state = STATE_DISCONNECTED;
 	uint8_t uuid_flag = 0, token_flag = 0;
 	int retval = 0;
+	size_t ilen;
+	knot_msg kreq;
 
 	if (enable_run == 0)
 		return -1;
@@ -203,7 +209,7 @@ int knot_thing_protocol_run(void)
 		//TODO: verify connection status, if not connected,
 		//	goto STATE_ERROR
 		/*
-		 * uuid/token flags indicate whether they are
+		 * uuid/token flags indicate wheter they are
 		 * stored in EEPROM or not
 		 */
 		hal_storage_read(KNOT_UUID_FLAG_ADDR, &uuid_flag,
@@ -273,7 +279,22 @@ int knot_thing_protocol_run(void)
 	break;
 
 	case STATE_ONLINE:
-		//TODO: process incoming messages
+		/* FIXME: Open socket first */
+		ilen = hal_comm_read(-1, &kreq, sizeof(kreq));
+		if (ilen > 0) {
+			/* There is config or set data */
+			switch (kreq.hdr.type) {
+			case KNOT_MSG_CONFIG:
+			case KNOT_MSG_SET_DATA:
+			case KNOT_MSG_GET_DATA:
+				/* TODO */
+				break;
+			default:
+				/* Invalid command */
+				break;
+			}
+
+		}
 		//TODO: send messages according to the events
 	break;
 
