@@ -20,6 +20,9 @@
 
 #define KNOT_THING_EMPTY_ITEM		"EMPTY ITEM"
 
+/* Keeps track of max data_items index were there is a sensor/actuator stored */
+static uint8_t max_sensor_id;
+
 static struct {
 	// schema values
 	uint8_t			value_type;	// KNOT_VALUE_TYPE_* (int, float, bool, raw)
@@ -38,6 +41,7 @@ static struct {
 static void reset_data_items(void)
 {
 	int8_t index = 0;
+	max_sensor_id = 0;
 
 	for (index = 0; index < KNOT_THING_DATA_MAX; index++)
 	{
@@ -105,6 +109,7 @@ int8_t knot_thing_register_raw_data_item(uint8_t sensor_id, const char *name,
 		return -1;
 
 	data_items[sensor_id].last_value_raw	= raw_buffer;
+
 	return 0;
 }
 
@@ -140,6 +145,10 @@ int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name,
 
 	data_items[sensor_id].functions.int_f.read			= func->int_f.read; // as "functions" is a union, we need just to
 	data_items[sensor_id].functions.int_f.write			= func->int_f.write; // set only one of its members
+
+	if (sensor_id > max_sensor_id)
+		max_sensor_id = sensor_id;
+
 	return 0;
 }
 
