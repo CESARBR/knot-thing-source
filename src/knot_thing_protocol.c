@@ -216,6 +216,30 @@ static int config(knot_msg_config *config)
 	return 0;
 }
 
+static int set_data(knot_msg_data *data)
+{
+	int err;
+	ssize_t nbytes;
+	knot_msg_result resp;
+
+	err = thing_write(data->sensor_id, data);
+
+	resp.result = KNOT_SUCCESS;
+	if (err < 0)
+		resp.result = KNOT_ERROR_UNKNOWN;
+
+	memset(&resp, 0, sizeof(resp));
+
+	resp.hdr.type = KNOT_MSG_DATA_RESP;
+	resp.hdr.payload_len = sizeof(resp.result);
+
+	nbytes = hal_comm_write(-1, &resp, sizeof(resp.hdr) + resp.result);
+	if (nbytes < 0)
+		return -1;
+
+	return 0;
+}
+
 int knot_thing_protocol_run(void)
 {
 	static uint8_t state = STATE_DISCONNECTED;
@@ -317,6 +341,7 @@ int knot_thing_protocol_run(void)
 				config(&kreq.config);
 				break;
 			case KNOT_MSG_SET_DATA:
+				set_data(&kreq.data);
 				break;
 			case KNOT_MSG_GET_DATA:
 				/* TODO */
