@@ -70,7 +70,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 
 void knot_thing_protocol_exit(void)
 {
-	//TODO: close socket if needed
+	hal_comm_close(sock);
 	enable_run = 0;
 }
 
