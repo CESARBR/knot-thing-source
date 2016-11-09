@@ -48,9 +48,8 @@ static data_function thing_read;
 static data_function thing_write;
 static config_function configf;
 
-int knot_thing_protocol_init(uint8_t protocol, const char *thing_name,
-					data_function read, data_function write,
-				schema_function schema, config_function config)
+int knot_thing_protocol_init(const char *thing_name, data_function read,
+	data_function write, schema_function schema, config_function config)
 {
 	int len;
 
