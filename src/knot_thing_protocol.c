@@ -242,6 +242,32 @@ static int set_data(knot_msg_data *data)
 	return 0;
 }
 
+static int get_data(knot_msg_data *data)
+{
+	int err;
+	knot_msg_data msg;
+	knot_msg_data data_resp;
+	ssize_t nbytes;
+
+	memset(&data_resp, 0, sizeof(data_resp));
+	err = thing_read(data->sensor_id, &data_resp);
+
+	memset(&msg, 0, sizeof(msg));
+	msg.hdr.type = KNOT_MSG_DATA;
+	if (err < 0)
+		msg.hdr.type = KNOT_ERROR_UNKNOWN;
+
+	msg.sensor_id = data->sensor_id;
+	memcpy(&msg.payload, &data_resp, sizeof(data_resp));
+
+	nbytes = hal_comm_write(-1, &msg, sizeof(msg.hdr) +
+							msg.hdr.payload_len);
+	if (nbytes < 0)
+		return -1;
+
+	return 0;
+}
+
 int knot_thing_protocol_run(void)
 {
 	static uint8_t state = STATE_DISCONNECTED;
@@ -346,13 +372,12 @@ int knot_thing_protocol_run(void)
 				set_data(&kreq.data);
 				break;
 			case KNOT_MSG_GET_DATA:
-				/* TODO */
+				get_data(&kreq.data);
 				break;
 			default:
 				/* Invalid command */
 				break;
 			}
-
 		}
 		//TODO: send messages according to the events
 	break;
@@ -373,3 +398,5 @@ int knot_thing_protocol_run(void)
 
 	return 0;
 }
+
+
