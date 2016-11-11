@@ -73,12 +73,6 @@ int KNoTThing::registerBoolData(const char *name, uint8_t sensor_id, uint16_t ty
 		type_id, KNOT_VALUE_TYPE_RAW, unit, &func);
 }
 
-int KNoTThing::configData(uint8_t sensor_id, uint8_t event_flags,
-	knot_data_values *lower_limit, knot_data_values *upper_limit)
-{
-	return knot_thing_config_data_item(sensor_id, event_flags, lower_limit, upper_limit);
-}
-
 void KNoTThing::run()
 {
 	knot_thing_run();

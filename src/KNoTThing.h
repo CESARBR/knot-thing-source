@@ -38,12 +38,6 @@ public:
 	uint8_t sensor_id, uint16_t type_id, uint8_t unit, rawDataFunction read,
 	rawDataFunction write);
 
-	// TODO: this method is here just for testing.
-	// Should be removed later because config will be
-	// available only through protocol messages.
-	int configData(uint8_t sensor_id, uint8_t event_flags,
-		knot_data_values *lower_limit, knot_data_values *upper_limit);
-
 	void run();
 private:
 
