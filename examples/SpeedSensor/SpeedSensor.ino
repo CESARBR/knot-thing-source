@@ -35,17 +35,17 @@ static int speed_write(int32_t *val, int32_t *multiplier)
     return 0;
 }
 
-void setup() 
+void setup()
 {
     Serial.begin(9600);
     pinMode(LED, OUTPUT);
-    thing.init();
+    thing.init(KNOT_THING_TTY, "Speed");
     thing.registerIntData(SPEED_SENSOR_NAME, SPEED_SENSOR_ID, KNOT_TYPE_ID_SPEED, KNOT_UNIT_SPEED_MS, speed_read, speed_write);
 }
 
-void loop() 
+void loop()
 {
-    thing.run(); 
+    thing.run();
     digitalWrite(LED, speed_value%2); // toggle LED
     delay(1000);
 }
