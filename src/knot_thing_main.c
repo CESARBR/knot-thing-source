@@ -22,6 +22,7 @@
 
 /* Keeps track of max data_items index were there is a sensor/actuator stored */
 static uint8_t max_sensor_id;
+static uint8_t evt_sensor_id;
 
 static struct {
 	// schema values
@@ -42,6 +43,7 @@ static void reset_data_items(void)
 {
 	int8_t index = 0;
 	max_sensor_id = 0;
+	evt_sensor_id = 0;
 
 	for (index = 0; index < KNOT_THING_DATA_MAX; index++)
 	{
@@ -314,109 +316,91 @@ static int data_item_write(uint8_t sensor_id, knot_msg_data *data)
 
 int8_t knot_thing_run(void)
 {
-	uint8_t i = 0, uint8_val = 0, comparison = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];
-	int32_t int32_val = 0, multiplier = 0;
-	uint32_t uint32_val = 0;
-	/* TODO: Monitor messages from network */
+	/* TODO: call protocol run */
 
+	return 0;
+}
+
+int8_t verify_events(knot_msg_data *data)
+{
+	uint8_t err = 0, comparison = 0;
 	/*
 	 * For all registered data items: verify if value
 	 * changed according to the events registered.
 	 */
 
 	// TODO: add timer events
-	for (i = 0; i < KNOT_THING_DATA_MAX; i++)
-	{
-		if (data_items[i].value_type == KNOT_VALUE_TYPE_RAW)
-		{
-			// Raw supports only KNOT_EVT_FLAG_CHANGE
-			if ((KNOT_EVT_FLAG_CHANGE & data_items[i].config.event_flags) == 0)
-				continue;
+	err = data_item_read(evt_sensor_id, data);
 
-			if (data_items[i].functions.raw_f.read == NULL)
-				continue;
+	if (err < 0)
+		return -1;
+	/* Value did not change or error: return -1, 0 means send data */
+	if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_RAW) {
+		// Raw supports only KNOT_EVT_FLAG_CHANGE
+		if ((KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags) == 0)
+			return -1;
 
-			if (data_items[i].last_value_raw == NULL)
-				continue;
+		if (data_items[evt_sensor_id].last_value_raw == NULL)
+			return -1;
 
-			if (data_items[i].functions.raw_f.read(&uint8_val, uint8_buffer) < 0)
-				continue;
+		/* if (data->payload.raw != KNOT_DATA_RAW_SIZE)
+			return -1; */
+		if (memcmp(data_items[evt_sensor_id].last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE) == 0)
+			return -1;
 
-			if (uint8_val != KNOT_DATA_RAW_SIZE)
-				continue;
-
-			if (memcmp(data_items[i].last_value_raw, uint8_buffer, KNOT_DATA_RAW_SIZE) == 0)
-				continue;
-
-			memcpy(data_items[i].last_value_raw, uint8_buffer, KNOT_DATA_RAW_SIZE);
-			// TODO: Send message (as raw is not in last_data structure)
-			continue; // Raw actions end here
-		}
-		else if (data_items[i].value_type == KNOT_VALUE_TYPE_BOOL)
-		{
-			if (data_items[i].functions.bool_f.read == NULL)
-				continue;
-
-			if (data_items[i].functions.bool_f.read(&uint8_val) < 0)
-				continue;
-
-			if (uint8_val != data_items[i].last_data.val_b)
-			{
-				comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[i].config.event_flags);
-				data_items[i].last_data.val_b = uint8_val;
-			}
-
-		}
-		else if (data_items[i].value_type == KNOT_VALUE_TYPE_INT)
-		{
-			if (data_items[i].functions.int_f.read == NULL)
-				continue;
-
-			if (data_items[i].functions.int_f.read(&int32_val, &multiplier) < 0)
-				continue;
-
-			// TODO: add multiplier to comparison
-			if (int32_val < data_items[i].config.lower_limit.val_i.value)
-				comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[i].config.event_flags);
-			else if (int32_val > data_items[i].config.upper_limit.val_i.value)
-				comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[i].config.event_flags);
-			if (int32_val != data_items[i].last_data.val_i.value)
-				comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[i].config.event_flags);
-
-			data_items[i].last_data.val_i.value = int32_val;
-			data_items[i].last_data.val_i.multiplier = multiplier;
-		}
-		else if (data_items[i].value_type == KNOT_VALUE_TYPE_FLOAT)
-		{
-			if (data_items[i].functions.float_f.read == NULL)
-				continue;
-
-			if (data_items[i].functions.float_f.read(&int32_val, &uint32_val, &multiplier) < 0)
-				continue;
-
-			// TODO: add multiplier and decimal part to comparison
-			if (int32_val < data_items[i].config.lower_limit.val_f.value_int)
-				comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[i].config.event_flags);
-			else if (int32_val > data_items[i].config.upper_limit.val_f.value_int)
-				comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[i].config.event_flags);
-			if (int32_val != data_items[i].last_data.val_f.value_int)
-				comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[i].config.event_flags);
-
-			data_items[i].last_data.val_f.value_int = int32_val;
-			data_items[i].last_data.val_f.value_dec = uint32_val;
-			data_items[i].last_data.val_f.multiplier = multiplier;
-		}
-		else // This data item is not registered with a valid value type
-		{
-			continue;
+		memcpy(data_items[evt_sensor_id].last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE);
+		// TODO: Send message (as raw is not in last_data structure)
+		/*return -1;  Raw actions end here */
+	} else if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_BOOL) {
+		if (data->payload.values.val_b != data_items[evt_sensor_id].last_data.val_b) {
+			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
+			data_items[evt_sensor_id].last_data.val_b = data->payload.values.val_b;
 		}
 
-		// Nothing changed
-		if (comparison == 0)
-			continue;
+	} else if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_INT) {
+		// TODO: add multiplier to comparison
 
-		// TODO: If something changed, send message
+		if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.lower_limit.val_i.value)
+			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
+		else if (data->payload.values.val_i.value > data_items[evt_sensor_id].config.upper_limit.val_i.value)
+			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
+		if (data->payload.values.val_i.value != data_items[evt_sensor_id].last_data.val_i.value)
+			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
+
+		data_items[evt_sensor_id].last_data.val_i.value = data->payload.values.val_i.value;
+		data_items[evt_sensor_id].last_data.val_i.multiplier = data->payload.values.val_i.multiplier;
+	} else if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_FLOAT) {
+		// TODO: add multiplier and decimal part to comparison
+		if (data->payload.values.val_f.value_int < data_items[evt_sensor_id].config.lower_limit.val_f.value_int)
+			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
+		else if (data->payload.values.val_f.value_int > data_items[evt_sensor_id].config.upper_limit.val_f.value_int)
+			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
+		if (data->payload.values.val_f.value_int != data_items[evt_sensor_id].last_data.val_f.value_int)
+			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
+
+		data_items[evt_sensor_id].last_data.val_f.value_int = data->payload.values.val_f.value_int;
+		data_items[evt_sensor_id].last_data.val_f.value_dec = data->payload.values.val_f.value_dec;
+		data_items[evt_sensor_id].last_data.val_f.multiplier = data->payload.values.val_f.multiplier;
+	} else {
+	// This data item is not registered with a valid value type
+		return -1;
 	}
+
+	/*
+	 * To avoid an extensive loop we keep an variable to iterate over all
+	 * sensors/actuators once at each loop. When the last sensor was verified
+	 * we reinitialize the counter, otherwise we just increment it.
+	 */
+	evt_sensor_id++;
+
+	if (evt_sensor_id == max_sensor_id)
+		evt_sensor_id = 0;
+
+	// Nothing changed
+	if (comparison == 0)
+		return -1;
+
+	// TODO: If something changed, create message
 
 	return 0;
 }
