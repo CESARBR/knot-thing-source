@@ -382,7 +382,13 @@ int knot_thing_protocol_run(void)
 				break;
 			}
 		}
-		//TODO: send messages according to the events
+		/*
+		 * TODO: Send messages according to the events:
+		 * Each iteration increment the index, call
+		 * verify_events(knot_msg_data) and use comm_write to
+		 * send possible data to the gateway
+		 */
+
 	break;
 
 	case STATE_ERROR:
