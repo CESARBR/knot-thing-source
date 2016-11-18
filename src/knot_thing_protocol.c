@@ -279,6 +279,18 @@ static int data_resp(knot_msg_result *action)
 	return action->result;
 }
 
+static int send_data(knot_msg_data *msg_data)
+{
+	int err;
+
+	err = hal_comm_write(-1, msg_data,
+			sizeof(msg_data->hdr) + msg_data->hdr.payload_len);
+	if (err < 0)
+		return err;
+
+	return 0;
+}
+
 int knot_thing_protocol_run(void)
 {
 	static uint8_t state = STATE_DISCONNECTED;
@@ -287,6 +299,9 @@ int knot_thing_protocol_run(void)
 	int retval = 0;
 	size_t ilen;
 	knot_msg kreq;
+	knot_msg_data msg_data;
+
+	memset(&msg_data, 0, sizeof(msg_data));
 
 	if (enable_run == 0)
 		return -1;
@@ -434,12 +449,10 @@ int knot_thing_protocol_run(void)
 				break;
 			}
 		}
-		/*
-		 * TODO: Send messages according to the events:
-		 * Each iteration increment the index, call
-		 * verify_events(knot_msg_data) and use comm_write to
-		 * send possible data to the gateway
-		 */
+		/* If some event ocurred send msg_data */
+		if (eventf(&msg_data) == 0)
+			if (send_data(&msg_data) < 0)
+				state = STATE_ERROR;
 
 	break;
 
@@ -473,5 +486,3 @@ int knot_thing_protocol_run(void)
 
 	return 0;
 }
-
-
