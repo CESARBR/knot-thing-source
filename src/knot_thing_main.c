@@ -330,9 +330,7 @@ static int data_item_write(uint8_t sensor_id, knot_msg_data *data)
 
 int8_t knot_thing_run(void)
 {
-	/* TODO: call protocol run */
-
-	return 0;
+	return knot_thing_protocol_run();
 }
 
 int8_t verify_events(knot_msg_data *data)
