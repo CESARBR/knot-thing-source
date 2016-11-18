@@ -223,10 +223,9 @@ int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
 
 static int data_item_read(uint8_t sensor_id, knot_msg_data *data)
 {
-	uint8_t uint8_val = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];
+	uint8_t len = 0, uint8_val = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];
 	int32_t int32_val = 0, multiplier = 0;
 	uint32_t uint32_val = 0;
-	int len;
 
 	if (data_items[sensor_id].name == KNOT_THING_EMPTY_ITEM)
 		return -1;
@@ -235,10 +234,10 @@ static int data_item_read(uint8_t sensor_id, knot_msg_data *data)
 	case KNOT_VALUE_TYPE_RAW:
 		if (data_items[sensor_id].functions.raw_f.read == NULL)
 			return -1;
-		if (data_items[sensor_id].functions.raw_f.read(&uint8_val, uint8_buffer) < 0)
+		if (data_items[sensor_id].functions.raw_f.read(uint8_buffer, &uint8_val) < 0)
 			return -1;
 
-		len = sizeof(data->payload.raw);
+		len = uint8_val;
 		memcpy(data->payload.raw, uint8_buffer, len);
 		data->hdr.payload_len = len;
 		break;
@@ -358,14 +357,15 @@ int8_t verify_events(knot_msg_data *data)
 		if (data_items[evt_sensor_id].last_value_raw == NULL)
 			return -1;
 
-		/* if (data->payload.raw != KNOT_DATA_RAW_SIZE)
-			return -1; */
+		if (data->hdr.payload_len != KNOT_DATA_RAW_SIZE)
+			return -1;
+
 		if (memcmp(data_items[evt_sensor_id].last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE) == 0)
 			return -1;
 
 		memcpy(data_items[evt_sensor_id].last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE);
-		// TODO: Send message (as raw is not in last_data structure)
-		/*return -1;  Raw actions end here */
+		comparison = 1;
+
 	} else if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_BOOL) {
 		if (data->payload.values.val_b != data_items[evt_sensor_id].last_data.val_b) {
 			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
