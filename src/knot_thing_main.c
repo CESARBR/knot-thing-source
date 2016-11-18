@@ -186,7 +186,7 @@ int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
 
 	msg->hdr.type = KNOT_MSG_SCHEMA;
 
-	if (data_items[i].name == KNOT_THING_EMPTY_ITEM)
+	if ((i >= KNOT_THING_DATA_MAX) || item_is_unregistered(i) == 0)
 		/*
 		 * FIXME
 		 * Check if this is the best error to be used from the defines
@@ -221,7 +221,7 @@ static int data_item_read(uint8_t sensor_id, knot_msg_data *data)
 	int32_t int32_val = 0, multiplier = 0;
 	uint32_t uint32_val = 0;
 
-	if (data_items[sensor_id].name == KNOT_THING_EMPTY_ITEM)
+	if ((sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(sensor_id) == 0)
 		return -1;
 
 	switch (data_items[sensor_id].value_type) {
@@ -281,7 +281,7 @@ static int data_item_write(uint8_t sensor_id, knot_msg_data *data)
 {
 	uint8_t len;
 
-	if (data_items[sensor_id].name == KNOT_THING_EMPTY_ITEM)
+	if ((sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(sensor_id) == 0)
 		return -1;
 
 	switch (data_items[sensor_id].value_type) {
