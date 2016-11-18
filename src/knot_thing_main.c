@@ -87,12 +87,6 @@ uint8_t item_is_unregistered(uint8_t sensor_id)
 	return (!(data_items[sensor_id].config.event_flags & KNOT_EVT_FLAG_UNREGISTERED));
 }
 
-int8_t knot_thing_init(const char *thing_name)
-{
-	reset_data_items();
-	return 0;
-}
-
 void knot_thing_exit(void)
 {
 
@@ -333,7 +327,7 @@ int8_t knot_thing_run(void)
 	return knot_thing_protocol_run();
 }
 
-int8_t verify_events(knot_msg_data *data)
+int verify_events(knot_msg_data *data)
 {
 	uint8_t err = 0, comparison = 0;
 	/*
@@ -418,4 +412,13 @@ int8_t verify_events(knot_msg_data *data)
 	// TODO: If something changed, create message
 
 	return 0;
+}
+
+int8_t knot_thing_init(const char *thing_name)
+{
+	reset_data_items();
+
+	return knot_thing_protocol_init(thing_name, data_item_read,
+				data_item_write, knot_thing_create_schema,
+				knot_thing_config_data_item, verify_events);
 }
