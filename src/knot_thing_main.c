@@ -52,20 +52,22 @@ static void reset_data_items(void)
 		data_items[index].unit					= KNOT_UNIT_NOT_APPLICABLE;
 		data_items[index].value_type				= KNOT_VALUE_TYPE_INVALID;
 		data_items[index].config.event_flags			= KNOT_EVT_FLAG_UNREGISTERED;
-
-		data_items[index].last_data.val_f.multiplier		= 1; // as "last_data" is a union, we need just to
-		data_items[index].last_data.val_f.value_int		= 0; // set the "biggest" member
+		/* As "last_data" is a union, we need just to set the "biggest" member*/
+		data_items[index].last_data.val_f.multiplier		= 1;
+		data_items[index].last_data.val_f.value_int		= 0;
 		data_items[index].last_data.val_f.value_dec		= 0;
-		data_items[index].config.lower_limit.val_f.multiplier	= 1; // as "lower_limit" is a union, we need just to
-		data_items[index].config.lower_limit.val_f.value_int	= 0; // set the "biggest" member
+		/* As "lower_limit" is a union, we need just to set the "biggest" member */
+		data_items[index].config.lower_limit.val_f.multiplier	= 1;
+		data_items[index].config.lower_limit.val_f.value_int	= 0;
 		data_items[index].config.lower_limit.val_f.value_dec	= 0;
-		data_items[index].config.upper_limit.val_f.multiplier	= 1; // as "upper_limit" is a union, we need just to
-		data_items[index].config.upper_limit.val_f.value_int	= 0; // set the "biggest" member
+		/* As "upper_limit" is a union, we need just to set the "biggest" member */
+		data_items[index].config.upper_limit.val_f.multiplier	= 1;
+		data_items[index].config.upper_limit.val_f.value_int	= 0;
 		data_items[index].config.upper_limit.val_f.value_dec	= 0;
 		data_items[index].last_value_raw			= NULL;
-
-		data_items[index].functions.int_f.read	= NULL; // as "functions" is a union, we need just to
-		data_items[index].functions.int_f.write	= NULL; // set only one of its members
+		/* As "functions" is a union, we need just to set only one of its members */
+		data_items[index].functions.int_f.read	= NULL;
+		data_items[index].functions.int_f.write	= NULL;
 	}
 }
 
@@ -133,20 +135,24 @@ int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name,
 	data_items[sensor_id].unit					= unit;
 	data_items[sensor_id].value_type				= value_type;
 	// TODO: load flags and limits from persistent storage
-	data_items[sensor_id].config.event_flags			= KNOT_EVT_FLAG_NONE; // remove KNOT_EVT_FLAG_UNREGISTERED flag
-	data_items[sensor_id].last_data.val_f.multiplier		= 1; // as "last_data" is a union, we need just to
-	data_items[sensor_id].last_data.val_f.value_int			= 0; // set the "biggest" member
+	/* Remove KNOT_EVT_FLAG_UNREGISTERED flag */
+	data_items[sensor_id].config.event_flags			= KNOT_EVT_FLAG_NONE;
+	/* As "last_data" is a union, we need just to set the "biggest" member */
+	data_items[sensor_id].last_data.val_f.multiplier		= 1;
+	data_items[sensor_id].last_data.val_f.value_int			= 0;
 	data_items[sensor_id].last_data.val_f.value_dec			= 0;
-	data_items[sensor_id].config.lower_limit.val_f.multiplier	= 1; // as "lower_limit" is a union, we need just to
-	data_items[sensor_id].config.lower_limit.val_f.value_int	= 0; // set the "biggest" member
+	/* As "lower_limit" is a union, we need just to set the "biggest" member */
+	data_items[sensor_id].config.lower_limit.val_f.multiplier	= 1;
+	data_items[sensor_id].config.lower_limit.val_f.value_int	= 0;
 	data_items[sensor_id].config.lower_limit.val_f.value_dec	= 0;
-	data_items[sensor_id].config.upper_limit.val_f.multiplier	= 1; // as "upper_limit" is a union, we need just to
-	data_items[sensor_id].config.upper_limit.val_f.value_int	= 0; // set the "biggest" member
+	/* As "upper_limit" is a union, we need just to set the "biggest" member */
+	data_items[sensor_id].config.upper_limit.val_f.multiplier	= 1;
+	data_items[sensor_id].config.upper_limit.val_f.value_int	= 0;
 	data_items[sensor_id].config.upper_limit.val_f.value_dec	= 0;
 	data_items[sensor_id].last_value_raw				= NULL;
-
-	data_items[sensor_id].functions.int_f.read			= func->int_f.read; // as "functions" is a union, we need just to
-	data_items[sensor_id].functions.int_f.write			= func->int_f.write; // set only one of its members
+	/* As "functions" is a union, we need just to set only one of its members */
+	data_items[sensor_id].functions.int_f.read			= func->int_f.read;
+	data_items[sensor_id].functions.int_f.write			= func->int_f.write;
 
 	if (sensor_id > max_sensor_id)
 		max_sensor_id = sensor_id;
@@ -161,17 +167,17 @@ int8_t knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
 		return -1;
 
 	data_items[sensor_id].config.event_flags = event_flags;
-	if (lower_limit != NULL)
-	{
-		data_items[sensor_id].config.lower_limit.val_f.multiplier	= lower_limit->val_f.multiplier; // as "lower_limit" is a union, we need just to
-		data_items[sensor_id].config.lower_limit.val_f.value_int	= lower_limit->val_f.value_int;  // set the "biggest" member
+	if (lower_limit != NULL) {
+		/* As "lower_limit" is a union, we need just to set the "biggest" member */
+		data_items[sensor_id].config.lower_limit.val_f.multiplier	= lower_limit->val_f.multiplier;
+		data_items[sensor_id].config.lower_limit.val_f.value_int	= lower_limit->val_f.value_int;
 		data_items[sensor_id].config.lower_limit.val_f.value_dec	= lower_limit->val_f.value_dec;
 	}
 
-	if (upper_limit != NULL)
-	{
-		data_items[sensor_id].config.upper_limit.val_f.multiplier	= upper_limit->val_f.multiplier; // as "upper_limit" is a union, we need just to
-		data_items[sensor_id].config.upper_limit.val_f.value_int	= upper_limit->val_f.value_int;  // set the "biggest" member
+	if (upper_limit != NULL) {
+		/* As "upper_limit" is a union, we need just to set the "biggest" member */
+		data_items[sensor_id].config.upper_limit.val_f.multiplier	= upper_limit->val_f.multiplier;
+		data_items[sensor_id].config.upper_limit.val_f.value_int	= upper_limit->val_f.value_int;
 		data_items[sensor_id].config.upper_limit.val_f.value_dec	= upper_limit->val_f.value_dec;
 	}
 	// TODO: store flags and limits on persistent storage
@@ -297,14 +303,17 @@ static int data_item_write(uint8_t sensor_id, knot_msg_data *data)
 	case KNOT_VALUE_TYPE_INT:
 		if (data_items[sensor_id].functions.int_f.read == NULL)
 			return -1;
-		if (data_items[sensor_id].functions.int_f.write(&data->payload.values.val_i.value, &data->payload.values.val_i.multiplier) < 0)
+		if (data_items[sensor_id].functions.int_f.write(&data->payload.values.val_i.value,
+								&data->payload.values.val_i.multiplier) < 0)
 			return -1;
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		if (data_items[sensor_id].functions.float_f.write == NULL)
 			return -1;
 
-		if (data_items[sensor_id].functions.float_f.write(&data->payload.values.val_f.value_int, &data->payload.values.val_f.value_dec, &data->payload.values.val_f.multiplier) < 0)
+		if (data_items[sensor_id].functions.float_f.write(&data->payload.values.val_f.value_int,
+								&data->payload.values.val_f.value_dec,
+								&data->payload.values.val_f.multiplier) < 0)
 			return -1;
 		break;
 	default:
@@ -371,9 +380,11 @@ int8_t verify_events(knot_msg_data *data)
 		data_items[evt_sensor_id].last_data.val_i.multiplier = data->payload.values.val_i.multiplier;
 	} else if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_FLOAT) {
 		// TODO: add multiplier and decimal part to comparison
-		if (data->payload.values.val_f.value_int < data_items[evt_sensor_id].config.lower_limit.val_f.value_int)
+		if (data->payload.values.val_f.value_int <
+						data_items[evt_sensor_id].config.lower_limit.val_f.value_int)
 			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-		else if (data->payload.values.val_f.value_int > data_items[evt_sensor_id].config.upper_limit.val_f.value_int)
+		else if (data->payload.values.val_f.value_int >
+						data_items[evt_sensor_id].config.upper_limit.val_f.value_int)
 			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
 		if (data->payload.values.val_f.value_int != data_items[evt_sensor_id].last_data.val_f.value_int)
 			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
