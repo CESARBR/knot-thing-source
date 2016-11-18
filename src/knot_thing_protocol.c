@@ -55,6 +55,8 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 							events_function event)
 {
 	int len;
+	if (hal_comm_init("NRF0") < 0)
+		return -1;
 
 	sock = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_RAW);
 	if (sock < 0)
