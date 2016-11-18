@@ -355,7 +355,7 @@ int knot_thing_protocol_run(void)
 	case STATE_AUTHENTICATING:
 		retval = read_auth();
 		if (!retval)
-			state = STATE_SCHEMA;
+			state = STATE_ONLINE;
 		else if (retval < 0) {
 			previous_state = state;
 			state = STATE_ERROR;
