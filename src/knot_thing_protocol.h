@@ -16,7 +16,7 @@ extern "C" {
 
 #include "knot_protocol.h"
 
-typedef int (*data_function)(uint8_t sensor_id, knot_data *data);
+typedef int (*data_function)(uint8_t sensor_id, knot_msg_data *data);
 typedef int (*schema_function)(uint8_t sensor_id, knot_msg_schema *schema);
 typedef int (*config_function)(uint8_t sensor_id, uint8_t event_flags,
 		knot_value_types *lower_limit, knot_value_types *upper_limit);
