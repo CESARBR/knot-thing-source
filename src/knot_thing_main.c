@@ -160,7 +160,7 @@ int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name,
 	return 0;
 }
 
-int8_t knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
+int knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
 	knot_value_types *lower_limit, knot_value_types *upper_limit)
 {
 	if ((sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(sensor_id) == 0)

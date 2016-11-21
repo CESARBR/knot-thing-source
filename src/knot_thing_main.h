@@ -54,7 +54,7 @@ void	knot_thing_exit(void);
 int8_t	knot_thing_run(void);
 
 /*
- * Data item (source/sink) registration/configuration functions
+ * Data item (source/sink) registration functions
  */
 int8_t knot_thing_register_raw_data_item(uint8_t sensor_id, const char *name,
 	uint8_t *raw_buffer, uint8_t raw_buffer_len, uint16_t type_id,
@@ -62,9 +62,6 @@ int8_t knot_thing_register_raw_data_item(uint8_t sensor_id, const char *name,
 
 int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name, uint16_t type_id,
 	uint8_t value_type, uint8_t unit, knot_data_functions *func);
-
-int8_t knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
-	knot_value_types *lower_limit, knot_value_types *upper_limit);
 
 #ifdef __cplusplus
 }
