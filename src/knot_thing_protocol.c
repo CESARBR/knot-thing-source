@@ -228,22 +228,22 @@ static int set_data(knot_msg_data *data)
 {
 	int err;
 	ssize_t nbytes;
-	knot_msg_result resp;
 
 	err = thing_write(data->sensor_id, data);
 
-	resp.result = KNOT_SUCCESS;
+	/*
+	 * GW must be aware if the data was succesfully set, so we resend
+	 * the request only changing the header type
+	 */
+	data->hdr.type = KNOT_MSG_DATA_RESP;
+	/* TODO: Improve error handling: Sensor not found, invalid data, etc */
 	if (err < 0)
-		resp.result = KNOT_ERROR_UNKNOWN;
+		data->hdr.type = KNOT_ERROR_UNKNOWN;
 
-	memset(&resp, 0, sizeof(resp));
-
-	resp.hdr.type = KNOT_MSG_DATA_RESP;
-	resp.hdr.payload_len = sizeof(resp.result);
-
-	nbytes = hal_comm_write(-1, &resp, sizeof(resp.hdr) + resp.result);
+	nbytes = hal_comm_write(-1, data, sizeof(data->hdr) +
+							data->hdr.payload_len);
 	if (nbytes < 0)
-		return -1;
+		return nbytes;
 
 	return 0;
 }
