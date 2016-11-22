@@ -39,7 +39,7 @@
 #define MIN(a,b)			(((a) < (b)) ? (a) : (b))
 #endif
 
-static uint8_t enable_run = 0, schema_sensor_id = 0;
+static uint8_t enable_run = 0, schema_sensor_id = 0, schema_end = 0;
 static char uuid[KNOT_PROTOCOL_UUID_LEN];
 static char token[KNOT_PROTOCOL_TOKEN_LEN];
 static char device_name[KNOT_PROTOCOL_DEVICE_NAME_LEN];
@@ -186,7 +186,7 @@ static int send_schema(void)
 		return err;
 
 	if (msg.hdr.type == KNOT_MSG_SCHEMA_FLAG_END)
-		schema_sensor_id = 0;
+		schema_end = 1;
 
 	nbytes = hal_comm_write(-1, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
@@ -344,25 +344,54 @@ int knot_thing_protocol_run(void)
 		else if (retval == 0)
 			state = STATE_SCHEMA;
 	break;
-
+	/*
+	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
+	 * wait for the ack of this schema. If there is no schema for that
+	 * schema_sensor_id, increments and stays in the STATE_SCHEMA. If an
+	 * error occurs, goes to STATE_ERROR.
+	 */
 	case STATE_SCHEMA:
-		/*
-		 * FIXME: Currently we are sending an schema for each sensor
-		 * individually without receiving a response from the GW.
-		 * We need to send the next schema only after
-		 * receiving a confirmation from the GW and change to ONLINE
-		 * only after the last confirmation was received
-		 */
 		retval = send_schema();
-		schema_sensor_id++;
-		if (retval < 0)
+		switch (retval) {
+		case KNOT_SUCCESS:
+			state = STATE_SCHEMA_RESP;
+		break;
+		case KNOT_ERROR_UNKNOWN:
 			state = STATE_ERROR;
-		else if (retval > 0)
-			state = STATE_ONLINE;
+		break;
+		case KNOT_SCHEMA_EMPTY:
+			state = STATE_SCHEMA;
+			schema_sensor_id++;
+		break;
+		default:
+			/* TODO: invalid command */
+		break;
+		}
 	break;
-
+	/*
+	 * Receives the ack from the GW and returns to STATE_SCHEMA to send the
+	 * next schema. If it was the ack for the last schema, goes to
+	 * STATE_ONLINE. If it is not a KNOT_MSG_SCHEMA_RESP, ignores. If the
+	 * result was not KNOT_SUCCESS, goes to STATE_ERROR.
+	 */
 	case STATE_SCHEMA_RESP:
-		/* TODO: Handle schema responses */
+		ilen = hal_comm_read(-1, &kreq, sizeof(kreq));
+		if (ilen > 0) {
+			if (kreq.hdr.type != KNOT_MSG_SCHEMA_RESP)
+				break;
+			if (kreq.action.result != KNOT_SUCCESS) {
+				state = STATE_ERROR;
+				break;
+			}
+			if (!schema_end) {
+				state = STATE_SCHEMA;
+				schema_sensor_id++;
+				break;
+			}
+			state = STATE_ONLINE;
+			schema_sensor_id = 0;
+			schema_end = 0;
+		}
 	break;
 
 	case STATE_ONLINE:
