@@ -274,6 +274,11 @@ static int get_data(knot_msg_data *data)
 	return 0;
 }
 
+static int data_resp(knot_msg_result *action)
+{
+	return action->result;
+}
+
 int knot_thing_protocol_run(void)
 {
 	static uint8_t state = STATE_DISCONNECTED;
@@ -418,6 +423,12 @@ int knot_thing_protocol_run(void)
 			case KNOT_MSG_GET_DATA:
 				get_data(&kreq.data);
 				break;
+			case KNOT_MSG_DATA_RESP:
+				if (data_resp(&kreq.action)) {
+					previous_state = state;
+					state = STATE_ERROR;
+				}
+			break;
 			default:
 				/* Invalid command */
 				break;
