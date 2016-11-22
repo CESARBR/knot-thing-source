@@ -313,15 +313,13 @@ int knot_thing_protocol_run(void)
 			hal_storage_read(KNOT_TOKEN_ADDR, token,
 					KNOT_PROTOCOL_TOKEN_LEN);
 
+			state = STATE_AUTHENTICATING;
 			if (send_auth() < 0)
 				state = STATE_ERROR;
-			else
-				state = STATE_AUTHENTICATING;
 		} else {
+			state = STATE_REGISTERING;
 			if (send_register() < 0)
 				state = STATE_ERROR;
-			else
-				state = STATE_REGISTERING;
 		}
 	break;
 	/*
@@ -331,18 +329,18 @@ int knot_thing_protocol_run(void)
 	 */
 	case STATE_AUTHENTICATING:
 		retval = read_auth();
-		if (retval < 0)
-			state = STATE_ERROR;
-		else if (retval == 0)
+		if (!retval)
 			state = STATE_SCHEMA;
+		else if (retval < 0)
+			state = STATE_ERROR;
 	break;
 
 	case STATE_REGISTERING:
 		retval = read_register();
-		if (retval < 0)
-			state = STATE_ERROR;
-		else if (retval == 0)
+		if (!retval)
 			state = STATE_SCHEMA;
+		else if (retval < 0)
+			state = STATE_ERROR;
 	break;
 	/*
 	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
