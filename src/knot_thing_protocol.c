@@ -191,9 +191,10 @@ static int send_schema(void)
 	nbytes = hal_comm_write(-1, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
 	if (nbytes < 0)
-		return -1;
+		/* TODO create a better error define in the protocol */
+		return KNOT_ERROR_UNKNOWN;
 
-	return 0;
+	return KNOT_SUCCESS;
 }
 
 static int config(knot_msg_config *config)

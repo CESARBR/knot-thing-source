@@ -193,7 +193,13 @@ int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
 	msg->hdr.type = KNOT_MSG_SCHEMA;
 
 	if (data_items[i].name == KNOT_THING_EMPTY_ITEM)
-		return -1;
+		/*
+		 * FIXME
+		 * Check if this is the best error to be used from the defines
+		 * in the knot_protocol. Replace or create a better one if
+		 * needed.
+		 */
+		return KNOT_SCHEMA_EMPTY;
 
 	msg->sensor_id = i;
 	entry.values.value_type = data_items[i].value_type;
@@ -212,7 +218,7 @@ int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
 	if (i == max_sensor_id)
 		msg->hdr.type = KNOT_MSG_SCHEMA | KNOT_MSG_SCHEMA_FLAG_END;
 
-	return 0;
+	return KNOT_SUCCESS;
 }
 
 static int data_item_read(uint8_t sensor_id, knot_msg_data *data)
