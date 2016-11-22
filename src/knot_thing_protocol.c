@@ -49,6 +49,9 @@ static data_function thing_write;
 static config_function configf;
 static int sock = -1;
 static events_function eventf;
+static int cli_sock = -1;
+/* FIXME: Thing address should be received via NFC */
+static uint64_t addr = 0xACDCDEAD98765432;
 
 int knot_thing_protocol_init(const char *thing_name, data_function read,
 	data_function write, schema_function schema, config_function config,
@@ -317,8 +320,15 @@ int knot_thing_protocol_run(void)
 	break;
 
 	case STATE_CONNECTING:
-		//TODO: verify connection status, if not connected,
-		//	goto STATE_ERROR
+		/*
+		 * Try to accept GW connection request. EAGAIN means keep
+		 * waiting, less then 0 means error and greater then 0 success
+		 */
+		cli_sock = hal_comm_accept(sock, &addr);
+		if (cli_sock == -EAGAIN)
+			break;
+		else if (cli_sock < 0)
+			state = STATE_ERROR;
 		/*
 		 * uuid/token flags indicate wheter they are
 		 * stored in EEPROM or not
