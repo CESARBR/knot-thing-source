@@ -309,7 +309,10 @@ int knot_thing_protocol_run(void)
 	/* Network message handling state machine */
 	switch (state) {
 	case STATE_DISCONNECTED:
-		//TODO: call hal_comm_connect()
+		/* Internally listen starts broadcasting presence*/
+		if (hal_comm_listen(sock) < 0)
+			state = STATE_ERROR;
+
 		state = STATE_CONNECTING;
 	break;
 
