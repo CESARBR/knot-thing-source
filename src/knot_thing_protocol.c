@@ -436,6 +436,20 @@ int knot_thing_protocol_run(void)
 		//TODO: log error
 		//TODO: close connection if needed
 		//TODO: wait 1s
+		switch (previous_state) {
+		case STATE_CONNECTING:
+		break;
+		case STATE_AUTHENTICATING:
+		break;
+		case STATE_REGISTERING:
+		break;
+		case STATE_SCHEMA:
+		break;
+		case STATE_SCHEMA_RESP:
+		break;
+		case STATE_ONLINE:
+		break;
+		}
 		state = STATE_DISCONNECTED;
 	break;
 
