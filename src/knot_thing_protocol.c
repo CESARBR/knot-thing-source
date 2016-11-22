@@ -277,6 +277,7 @@ static int get_data(knot_msg_data *data)
 int knot_thing_protocol_run(void)
 {
 	static uint8_t state = STATE_DISCONNECTED;
+	static uint8_t previous_state = STATE_DISCONNECTED;
 	uint8_t uuid_flag = 0, token_flag = 0;
 	int retval = 0;
 	size_t ilen;
@@ -314,12 +315,16 @@ int knot_thing_protocol_run(void)
 					KNOT_PROTOCOL_TOKEN_LEN);
 
 			state = STATE_AUTHENTICATING;
-			if (send_auth() < 0)
+			if (send_auth() < 0) {
+				previous_state = state;
 				state = STATE_ERROR;
+			}
 		} else {
 			state = STATE_REGISTERING;
-			if (send_register() < 0)
+			if (send_register() < 0) {
+				previous_state = state;
 				state = STATE_ERROR;
+			}
 		}
 	break;
 	/*
@@ -331,16 +336,20 @@ int knot_thing_protocol_run(void)
 		retval = read_auth();
 		if (!retval)
 			state = STATE_SCHEMA;
-		else if (retval < 0)
+		else if (retval < 0) {
+			previous_state = state;
 			state = STATE_ERROR;
+		}
 	break;
 
 	case STATE_REGISTERING:
 		retval = read_register();
 		if (!retval)
 			state = STATE_SCHEMA;
-		else if (retval < 0)
+		else if (retval < 0) {
+			previous_state = state;
 			state = STATE_ERROR;
+		}
 	break;
 	/*
 	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
@@ -355,6 +364,7 @@ int knot_thing_protocol_run(void)
 			state = STATE_SCHEMA_RESP;
 		break;
 		case KNOT_ERROR_UNKNOWN:
+			previous_state = state;
 			state = STATE_ERROR;
 		break;
 		case KNOT_SCHEMA_EMPTY:
@@ -378,6 +388,7 @@ int knot_thing_protocol_run(void)
 			if (kreq.hdr.type != KNOT_MSG_SCHEMA_RESP)
 				break;
 			if (kreq.action.result != KNOT_SUCCESS) {
+				previous_state = state;
 				state = STATE_ERROR;
 				break;
 			}
