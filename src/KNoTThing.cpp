@@ -26,51 +26,54 @@ int KNoTThing::init(const char *thing_name)
 	return knot_thing_init(thing_name);
 }
 
-int KNoTThing::registerIntData(const char *name, uint8_t sensor_id, uint16_t type_id,
-	uint8_t unit, intDataFunction read, intDataFunction write)
+int KNoTThing::registerIntData(const char *name, uint8_t sensor_id,
+				uint16_t type_id, uint8_t unit,
+				intDataFunction read, intDataFunction write)
 {
 	knot_data_functions func;
 	func.int_f.read = read;
 	func.int_f.write = write;
 
 	return knot_thing_register_data_item(sensor_id, name, type_id,
-	KNOT_VALUE_TYPE_INT, unit, &func);
+					KNOT_VALUE_TYPE_INT, unit, &func);
 }
 
-int KNoTThing::registerFloatData(const char *name, uint8_t sensor_id, uint16_t type_id,
-	uint8_t unit, floatDataFunction read, floatDataFunction write)
+int KNoTThing::registerFloatData(const char *name, uint8_t sensor_id,
+				uint16_t type_id, uint8_t unit,
+				floatDataFunction read, floatDataFunction write)
 {
 	knot_data_functions func;
 	func.float_f.read = read;
 	func.float_f.write = write;
 
 	return knot_thing_register_data_item(sensor_id, name, type_id,
-	KNOT_VALUE_TYPE_FLOAT, unit, &func);
+					KNOT_VALUE_TYPE_FLOAT, unit, &func);
 
 }
 
-int KNoTThing::registerBoolData(const char *name, uint8_t sensor_id, uint16_t type_id,
-	uint8_t unit, boolDataFunction read, boolDataFunction write)
+int KNoTThing::registerBoolData(const char *name, uint8_t sensor_id,
+				uint16_t type_id, uint8_t unit,
+				boolDataFunction read, boolDataFunction write)
 {
 	knot_data_functions func;
 	func.bool_f.read = read;
 	func.bool_f.write = write;
 
 	return knot_thing_register_data_item(sensor_id, name, type_id,
-	KNOT_VALUE_TYPE_BOOL, unit, &func);
+					KNOT_VALUE_TYPE_BOOL, unit, &func);
 
 }
 
-	int registerRawData(const char *name, uint8_t *raw_buffer, uint8_t raw_buffer_len,
-	uint8_t sensor_id, uint16_t type_id, uint8_t unit, rawDataFunction read,
-	rawDataFunction write)
+int KNoTThing::registerRawData(const char *name, uint8_t *raw_buffer,
+		uint8_t raw_buffer_len, uint8_t sensor_id, uint16_t type_id,
+		uint8_t unit, rawDataFunction read, rawDataFunction write)
 {
 	knot_data_functions func;
 	func.raw_f.read = read;
 	func.raw_f.write = write;
 
-	return knot_thing_register_raw_data_item(sensor_id, name, raw_buffer, raw_buffer_len,
-		type_id, KNOT_VALUE_TYPE_RAW, unit, &func);
+	return knot_thing_register_raw_data_item(sensor_id, name, raw_buffer,
+		raw_buffer_len, type_id, KNOT_VALUE_TYPE_RAW, unit, &func);
 }
 
 void KNoTThing::run()

@@ -26,15 +26,22 @@ public:
 	 */
 	int init(const char *thing_name);
 
-	int registerIntData(const char *name, uint8_t sensor_id, uint16_t type_id,
-		uint8_t unit, intDataFunction read, intDataFunction write);
-	int registerFloatData(const char *name, uint8_t sensor_id, uint16_t type_id,
-		uint8_t unit, floatDataFunction read, floatDataFunction write);
-	int registerBoolData(const char *name, uint8_t sensor_id, uint16_t type_id,
-		uint8_t unit, boolDataFunction read, boolDataFunction write);
-	int registerRawData(const char *name, uint8_t *raw_buffer, uint8_t raw_buffer_len,
-	uint8_t sensor_id, uint16_t type_id, uint8_t unit, rawDataFunction read,
-	rawDataFunction write);
+	int registerIntData(const char *name, uint8_t sensor_id,
+			uint16_t type_id, uint8_t unit,
+			intDataFunction read, intDataFunction write);
+
+	int registerFloatData(const char *name, uint8_t sensor_id,
+			uint16_t type_id, uint8_t unit,
+			floatDataFunction read, floatDataFunction write);
+
+	int registerBoolData(const char *name, uint8_t sensor_id,
+			uint16_t type_id, uint8_t unit,
+			boolDataFunction read, boolDataFunction write);
+
+	int registerRawData(const char *name, uint8_t *raw_buffer,
+			uint8_t raw_buffer_len, uint8_t sensor_id,
+			uint16_t type_id, uint8_t unit, rawDataFunction read,
+			rawDataFunction write);
 
 	void run();
 private:
