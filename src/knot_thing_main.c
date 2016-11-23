@@ -25,7 +25,7 @@
 static uint8_t max_sensor_id;
 static uint8_t evt_sensor_id;
 
-static struct {
+static struct _data_items{
 	// schema values
 	uint8_t			value_type;	// KNOT_VALUE_TYPE_* (int, float, bool, raw)
 	uint8_t			unit;		// KNOT_UNIT_*
@@ -44,34 +44,33 @@ static struct {
 
 static void reset_data_items(void)
 {
-	int8_t index = 0;
+	int8_t count;
 	max_sensor_id = 0;
 	evt_sensor_id = 0;
+	struct _data_items *pdata = data_items;
 
-	for (index = 0; index < KNOT_THING_DATA_MAX; index++)
-	{
-		data_items[index].name					= KNOT_THING_EMPTY_ITEM;
-		data_items[index].type_id				= KNOT_TYPE_ID_INVALID;
-		data_items[index].unit					= KNOT_UNIT_NOT_APPLICABLE;
-		data_items[index].value_type				= KNOT_VALUE_TYPE_INVALID;
-		data_items[index].config.event_flags			= KNOT_EVT_FLAG_UNREGISTERED;
+	for (count = 0; count < KNOT_THING_DATA_MAX; ++count, ++pdata) {
+		pdata->name					= KNOT_THING_EMPTY_ITEM;
+		pdata->type_id					= KNOT_TYPE_ID_INVALID;
+		pdata->unit					= KNOT_UNIT_NOT_APPLICABLE;
+		pdata->value_type				= KNOT_VALUE_TYPE_INVALID;
+		pdata->config.event_flags			= KNOT_EVT_FLAG_UNREGISTERED;
 		/* As "last_data" is a union, we need just to set the "biggest" member*/
-		data_items[index].last_data.val_f.multiplier		= 1;
-		data_items[index].last_data.val_f.value_int		= 0;
-		data_items[index].last_data.val_f.value_dec		= 0;
+		pdata->last_data.val_f.multiplier		= 1;
+		pdata->last_data.val_f.value_int		= 0;
+		pdata->last_data.val_f.value_dec		= 0;
 		/* As "lower_limit" is a union, we need just to set the "biggest" member */
-		data_items[index].config.lower_limit.val_f.multiplier	= 1;
-		data_items[index].config.lower_limit.val_f.value_int	= 0;
-		data_items[index].config.lower_limit.val_f.value_dec	= 0;
+		pdata->config.lower_limit.val_f.multiplier	= 1;
+		pdata->config.lower_limit.val_f.value_int	= 0;
+		pdata->config.lower_limit.val_f.value_dec	= 0;
 		/* As "upper_limit" is a union, we need just to set the "biggest" member */
-		data_items[index].config.upper_limit.val_f.multiplier	= 1;
-		data_items[index].config.upper_limit.val_f.value_int	= 0;
-		data_items[index].config.upper_limit.val_f.value_dec	= 0;
-		data_items[index].last_value_raw			= NULL;
-		data_items[index].last_timeout				= 0;
+		pdata->config.upper_limit.val_f.multiplier	= 1;
+		pdata->config.upper_limit.val_f.value_int	= 0;
+		pdata->config.upper_limit.val_f.value_dec	= 0;
+		pdata->last_value_raw				= NULL;
 		/* As "functions" is a union, we need just to set only one of its members */
-		data_items[index].functions.int_f.read	= NULL;
-		data_items[index].functions.int_f.write	= NULL;
+		pdata->functions.int_f.read			= NULL;
+		pdata->functions.int_f.write			= NULL;
 	}
 }
 
@@ -120,10 +119,7 @@ int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name,
 	uint16_t type_id, uint8_t value_type, uint8_t unit,
 	knot_data_functions *func)
 {
-	if (sensor_id >= KNOT_THING_DATA_MAX)
-		return -1;
-
-	if ((item_is_unregistered(sensor_id) != 0) ||
+	if (sensor_id >= KNOT_THING_DATA_MAX || (item_is_unregistered(sensor_id) != 0) ||
 		(knot_schema_is_valid(type_id, value_type, unit) != 0) ||
 		name == NULL || (data_function_is_valid(func) != 0))
 		return -1;
