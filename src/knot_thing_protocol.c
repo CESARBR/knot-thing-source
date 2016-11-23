@@ -95,7 +95,7 @@ static int send_register(void)
 	strncpy(msg.devName, device_name, len);
 	msg.hdr.payload_len = len;
 	/* FIXME: Open socket */
-	nbytes = hal_comm_write(-1, &msg, sizeof(msg.hdr) + len);
+	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + len);
 	if (nbytes < 0) {
 		return -1;
 	}
@@ -111,7 +111,7 @@ static int read_register(void)
 
 	memset(&crdntl, 0, sizeof(crdntl));
 	/* FIXME: Open socket */
-	nbytes = hal_comm_read(-1, &crdntl, sizeof(crdntl));
+	nbytes = hal_comm_read(cli_sock, &crdntl, sizeof(crdntl));
 
 	if (nbytes == -EAGAIN)
 		return -EAGAIN;
@@ -147,7 +147,7 @@ static int send_auth(void)
 	strncpy(msg.uuid, uuid, sizeof(msg.uuid));
 	strncpy(msg.token, token, sizeof(msg.token));
 
-	nbytes = hal_comm_write(-1, &msg, sizeof(msg.hdr) + msg.hdr.payload_len);
+	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + msg.hdr.payload_len);
 	if (nbytes < 0)
 		return -1;
 
@@ -161,7 +161,7 @@ static int read_auth(void)
 
 	memset(&resp, 0, sizeof(resp));
 
-	nbytes = hal_comm_read(-1, &resp, sizeof(resp));
+	nbytes = hal_comm_read(cli_sock, &resp, sizeof(resp));
 
 	if (nbytes == -EAGAIN)
 		return -EAGAIN;
@@ -191,7 +191,7 @@ static int send_schema(void)
 	if (msg.hdr.type == KNOT_MSG_SCHEMA_FLAG_END)
 		schema_end = 1;
 
-	nbytes = hal_comm_write(-1, &msg, sizeof(msg.hdr) +
+	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
 	if (nbytes < 0)
 		/* TODO create a better error define in the protocol */
@@ -220,7 +220,7 @@ static int config(knot_msg_config *config)
 	resp.hdr.type = KNOT_MSG_CONFIG_RESP;
 	resp.hdr.payload_len = sizeof(resp.result);
 
-	nbytes = hal_comm_write(-1, &resp, sizeof(resp.hdr) + resp.result);
+	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) + resp.result);
 	if (nbytes < 0)
 		return -1;
 
@@ -243,7 +243,7 @@ static int set_data(knot_msg_data *data)
 	if (err < 0)
 		data->hdr.type = KNOT_ERROR_UNKNOWN;
 
-	nbytes = hal_comm_write(-1, data, sizeof(data->hdr) +
+	nbytes = hal_comm_write(cli_sock, data, sizeof(data->hdr) +
 							data->hdr.payload_len);
 	if (nbytes < 0)
 		return nbytes;
@@ -269,7 +269,7 @@ static int get_data(knot_msg_data *data)
 	msg.sensor_id = data->sensor_id;
 	memcpy(&msg.payload, &data_resp, sizeof(data_resp));
 
-	nbytes = hal_comm_write(-1, &msg, sizeof(msg.hdr) +
+	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
 	if (nbytes < 0)
 		return -1;
@@ -286,7 +286,7 @@ static int send_data(knot_msg_data *msg_data)
 {
 	int err;
 
-	err = hal_comm_write(-1, msg_data,
+	err = hal_comm_write(cli_sock, msg_data,
 			sizeof(msg_data->hdr) + msg_data->hdr.payload_len);
 	if (err < 0)
 		return err;
@@ -416,7 +416,7 @@ int knot_thing_protocol_run(void)
 	 * result was not KNOT_SUCCESS, goes to STATE_ERROR.
 	 */
 	case STATE_SCHEMA_RESP:
-		ilen = hal_comm_read(-1, &kreq, sizeof(kreq));
+		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
 		if (ilen > 0) {
 			if (kreq.hdr.type != KNOT_MSG_SCHEMA_RESP)
 				break;
@@ -438,7 +438,7 @@ int knot_thing_protocol_run(void)
 
 	case STATE_ONLINE:
 		/* FIXME: Open socket first */
-		ilen = hal_comm_read(-1, &kreq, sizeof(kreq));
+		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
 		if (ilen > 0) {
 			/* There is config or set data */
 			switch (kreq.hdr.type) {
