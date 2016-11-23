@@ -9,12 +9,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <avr_errno.h>
-#include <avr_unistd.h>
 
 #include "knot_thing_protocol.h"
-#include "storage.h"
-#include "comm.h"
+#include "include/avr_errno.h"
+#include "include/avr_unistd.h"
+#include "include/storage.h"
+#include "include/comm.h"
 
 /*KNoT client storage mapping */
 #define KNOT_UUID_FLAG_ADDR		0
@@ -317,7 +317,7 @@ int knot_thing_protocol_run(void)
 			state = STATE_ERROR;
 
 		state = STATE_CONNECTING;
-	break;
+		break;
 
 	case STATE_CONNECTING:
 		/*
@@ -359,7 +359,7 @@ int knot_thing_protocol_run(void)
 				state = STATE_ERROR;
 			}
 		}
-	break;
+		break;
 	/*
 	 * Authenticating, Resgistering cases waits (without blocking)
 	 * for an response of the respective requests, -EAGAIN means there was
@@ -373,7 +373,7 @@ int knot_thing_protocol_run(void)
 			previous_state = state;
 			state = STATE_ERROR;
 		}
-	break;
+		break;
 
 	case STATE_REGISTERING:
 		retval = read_register();
@@ -383,7 +383,7 @@ int knot_thing_protocol_run(void)
 			previous_state = state;
 			state = STATE_ERROR;
 		}
-	break;
+		break;
 	/*
 	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
 	 * wait for the ack of this schema. If there is no schema for that
@@ -395,20 +395,20 @@ int knot_thing_protocol_run(void)
 		switch (retval) {
 		case KNOT_SUCCESS:
 			state = STATE_SCHEMA_RESP;
-		break;
+			break;
 		case KNOT_ERROR_UNKNOWN:
 			previous_state = state;
 			state = STATE_ERROR;
-		break;
+			break;
 		case KNOT_SCHEMA_EMPTY:
 			state = STATE_SCHEMA;
 			schema_sensor_id++;
-		break;
+			break;
 		default:
 			/* TODO: invalid command */
-		break;
+			break;
 		}
-	break;
+		break;
 	/*
 	 * Receives the ack from the GW and returns to STATE_SCHEMA to send the
 	 * next schema. If it was the ack for the last schema, goes to
@@ -456,7 +456,7 @@ int knot_thing_protocol_run(void)
 					previous_state = state;
 					state = STATE_ERROR;
 				}
-			break;
+				break;
 			default:
 				/* Invalid command */
 				break;
@@ -475,17 +475,17 @@ int knot_thing_protocol_run(void)
 		//TODO: wait 1s
 		switch (previous_state) {
 		case STATE_CONNECTING:
-		break;
+			break;
 		case STATE_AUTHENTICATING:
-		break;
+			break;
 		case STATE_REGISTERING:
-		break;
+			break;
 		case STATE_SCHEMA:
-		break;
+			break;
 		case STATE_SCHEMA_RESP:
-		break;
+			break;
 		case STATE_ONLINE:
-		break;
+			break;
 		}
 		state = STATE_DISCONNECTED;
 	break;
