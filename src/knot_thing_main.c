@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <string.h>
 
+#include "time.h"
 #include "knot_thing_config.h"
 #include "knot_types.h"
 #include "knot_thing_main.h"
@@ -35,6 +36,8 @@ static struct {
 	uint8_t			*last_value_raw;
 	// config values
 	knot_config		config;	// Flags indicating when data will be sent
+	// time values
+	uint32_t		last_timeout;	// Stores the last time the data was sent
 	// Data read/write functions
 	knot_data_functions	functions;
 } data_items[KNOT_THING_DATA_MAX];
@@ -65,6 +68,7 @@ static void reset_data_items(void)
 		data_items[index].config.upper_limit.val_f.value_int	= 0;
 		data_items[index].config.upper_limit.val_f.value_dec	= 0;
 		data_items[index].last_value_raw			= NULL;
+		data_items[index].last_timeout				= 0;
 		/* As "functions" is a union, we need just to set only one of its members */
 		data_items[index].functions.int_f.read	= NULL;
 		data_items[index].functions.int_f.write	= NULL;
@@ -330,21 +334,19 @@ int8_t knot_thing_run(void)
 int verify_events(knot_msg_data *data)
 {
 	uint8_t err = 0, comparison = 0;
+	uint32_t current_time = hal_time_ms(); // update the time variable
+
 	/*
 	 * For all registered data items: verify if value
 	 * changed according to the events registered.
 	 */
 
-	// TODO: add timer events
 	err = data_item_read(evt_sensor_id, data);
 
 	if (err < 0)
 		return -1;
 	/* Value did not change or error: return -1, 0 means send data */
 	if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_RAW) {
-		// Raw supports only KNOT_EVT_FLAG_CHANGE
-		if ((KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags) == 0)
-			return -1;
 
 		if (data_items[evt_sensor_id].last_value_raw == NULL)
 			return -1;
@@ -393,6 +395,15 @@ int verify_events(knot_msg_data *data)
 	} else {
 	// This data item is not registered with a valid value type
 		return -1;
+	}
+
+	/*
+	 * It is checked if the data is in time to be updated (time overflow).
+	 * If yes, the last timeout value and the comparison variable are updated with the time flag.
+	 */
+	if ((current_time - data_items[evt_sensor_id].last_timeout) >= data_items[evt_sensor_id].config.time_sec) {
+		data_items[evt_sensor_id].last_timeout = current_time;
+		comparison |= (KNOT_EVT_FLAG_TIME & data_items[evt_sensor_id].config.event_flags);
 	}
 
 	/*
