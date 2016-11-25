@@ -15,6 +15,7 @@
 #include "include/avr_unistd.h"
 #include "include/storage.h"
 #include "include/comm.h"
+#include "include/nrf24.h"
 
 /*KNoT client storage mapping */
 #define KNOT_UUID_FLAG_ADDR		0
@@ -50,8 +51,19 @@ static config_function configf;
 static int sock = -1;
 static events_function eventf;
 static int cli_sock = -1;
-/* FIXME: Thing address should be received via NFC */
-static uint64_t addr = 0xACDCDEAD98765432;
+
+/*
+ * FIXME: Thing address should be received via NFC
+ * Mac address must be stored in big endian format
+ */
+void set_nrf24MAC(struct nrf24_mac *mac)
+{
+	uint8_t mac_mask = 4;
+	memset(mac, 0, sizeof(struct nrf24_mac));
+	hal_getrandom(mac->address.b + mac_mask,
+					sizeof(mac) - mac_mask);
+	hal_storage_write_end(HAL_STORAGE_ID_MAC, mac, sizeof(*mac));
+}
 
 int knot_thing_protocol_init(const char *thing_name, data_function read,
 	data_function write, schema_function schema, config_function config,
@@ -295,8 +307,12 @@ int knot_thing_protocol_run(void)
 	ssize_t ilen;
 	knot_msg kreq;
 	knot_msg_data msg_data;
+	struct nrf24_mac addr;
 
 	memset(&msg_data, 0, sizeof(msg_data));
+
+	/* Set mac address */
+	set_nrf24MAC(&addr);
 
 	if (enable_run == 0)
 		return -1;
@@ -316,7 +332,7 @@ int knot_thing_protocol_run(void)
 		 * Try to accept GW connection request. EAGAIN means keep
 		 * waiting, less then 0 means error and greater then 0 success
 		 */
-		cli_sock = hal_comm_accept(sock, &addr);
+		cli_sock = hal_comm_accept(sock, &(addr.address.uint64));
 		if (cli_sock == -EAGAIN)
 			break;
 		else if (cli_sock < 0) {
