@@ -94,7 +94,7 @@ static int send_register(void)
 	msg.hdr.type = KNOT_MSG_REGISTER_REQ;
 	strncpy(msg.devName, device_name, len);
 	msg.hdr.payload_len = len;
-	/* FIXME: Open socket */
+
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + len);
 	if (nbytes < 0) {
 		return -1;
@@ -110,11 +110,8 @@ static int read_register(void)
 	const uint8_t buffer[] = { 0x01 };
 
 	memset(&crdntl, 0, sizeof(crdntl));
-	/* FIXME: Open socket */
-	nbytes = hal_comm_read(cli_sock, &crdntl, sizeof(crdntl));
 
-	if (nbytes == -EAGAIN)
-		return -EAGAIN;
+	nbytes = hal_comm_read(cli_sock, &crdntl, sizeof(crdntl));
 
 	if (nbytes > 0) {
 		if (crdntl.result != KNOT_SUCCESS)
@@ -163,13 +160,9 @@ static int read_auth(void)
 
 	nbytes = hal_comm_read(cli_sock, &resp, sizeof(resp));
 
-	if (nbytes == -EAGAIN)
-		return -EAGAIN;
-
 	if (nbytes > 0) {
 		if (resp.result != KNOT_SUCCESS)
 			return -1;
-
 	} else if (nbytes < 0)
 		return nbytes;
 
@@ -369,7 +362,7 @@ int knot_thing_protocol_run(void)
 		retval = read_auth();
 		if (!retval)
 			state = STATE_ONLINE;
-		else if (retval < 0) {
+		else if (retval != -EAGAIN) {
 			previous_state = state;
 			state = STATE_ERROR;
 		}
@@ -379,7 +372,7 @@ int knot_thing_protocol_run(void)
 		retval = read_register();
 		if (!retval)
 			state = STATE_SCHEMA;
-		else if (retval < 0) {
+		else if (retval != -EAGAIN) {
 			previous_state = state;
 			state = STATE_ERROR;
 		}
@@ -437,7 +430,6 @@ int knot_thing_protocol_run(void)
 	break;
 
 	case STATE_ONLINE:
-		/* FIXME: Open socket first */
 		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
 		if (ilen > 0) {
 			/* There is config or set data */
