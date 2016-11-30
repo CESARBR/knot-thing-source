@@ -290,7 +290,7 @@ int knot_thing_protocol_run(void)
 	static uint8_t previous_state = STATE_DISCONNECTED;
 	uint8_t uuid_flag = 0, token_flag = 0;
 	int retval = 0;
-	size_t ilen;
+	ssize_t ilen;
 	knot_msg kreq;
 	knot_msg_data msg_data;
 
