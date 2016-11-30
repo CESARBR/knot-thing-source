@@ -320,8 +320,10 @@ int knot_thing_protocol_run(void)
 		cli_sock = hal_comm_accept(sock, &addr);
 		if (cli_sock == -EAGAIN)
 			break;
-		else if (cli_sock < 0)
+		else if (cli_sock < 0) {
 			state = STATE_ERROR;
+			break;
+		}
 		/*
 		 * uuid/token flags indicate wheter they are
 		 * stored in EEPROM or not
