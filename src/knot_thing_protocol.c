@@ -39,7 +39,7 @@
 #define MIN(a,b)			(((a) < (b)) ? (a) : (b))
 #endif
 
-static uint8_t enable_run = 0, schema_sensor_id = 0, schema_end = 0;
+static uint8_t enable_run = 0, schema_sensor_id = 0;
 static char uuid[KNOT_PROTOCOL_UUID_LEN];
 static char token[KNOT_PROTOCOL_TOKEN_LEN];
 static char device_name[KNOT_PROTOCOL_DEVICE_NAME_LEN];
@@ -180,9 +180,6 @@ static int send_schema(void)
 
 	if (err < 0)
 		return err;
-
-	if (msg.hdr.type == KNOT_MSG_SCHEMA_FLAG_END)
-		schema_end = 1;
 
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
@@ -413,21 +410,21 @@ int knot_thing_protocol_run(void)
 	case STATE_SCHEMA_RESP:
 		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
 		if (ilen > 0) {
-			if (kreq.hdr.type != KNOT_MSG_SCHEMA_RESP)
+			if (kreq.hdr.type != KNOT_MSG_SCHEMA_RESP &&
+				kreq.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
 				break;
 			if (kreq.action.result != KNOT_SUCCESS) {
 				previous_state = state;
 				state = STATE_ERROR;
 				break;
 			}
-			if (!schema_end) {
+			if (kreq.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
 				state = STATE_SCHEMA;
 				schema_sensor_id++;
 				break;
 			}
 			state = STATE_ONLINE;
 			schema_sensor_id = 0;
-			schema_end = 0;
 		}
 	break;
 
