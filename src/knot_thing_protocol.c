@@ -58,6 +58,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 							events_function event)
 {
 	int len;
+
 	if (hal_comm_init("NRF0") < 0)
 		return -1;
 
@@ -96,9 +97,8 @@ static int send_register(void)
 	msg.hdr.payload_len = len;
 
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + len);
-	if (nbytes < 0) {
+	if (nbytes < 0)
 		return -1;
-	}
 
 	return 0;
 }
@@ -122,8 +122,10 @@ static int read_register(void)
 		hal_storage_write(KNOT_TOKEN_ADDR, crdntl.token,
 						KNOT_PROTOCOL_TOKEN_LEN);
 
-		hal_storage_write(KNOT_UUID_FLAG_ADDR, buffer, KNOT_UUID_FLAG_LEN);
-		hal_storage_write(KNOT_TOKEN_FLAG_ADDR, buffer, KNOT_TOKEN_FLAG_LEN);
+		hal_storage_write(KNOT_UUID_FLAG_ADDR, buffer,
+							KNOT_UUID_FLAG_LEN);
+		hal_storage_write(KNOT_TOKEN_FLAG_ADDR, buffer,
+							KNOT_TOKEN_FLAG_LEN);
 	} else if (nbytes < 0)
 		return nbytes;
 
@@ -144,7 +146,8 @@ static int send_auth(void)
 	strncpy(msg.uuid, uuid, sizeof(msg.uuid));
 	strncpy(msg.token, token, sizeof(msg.token));
 
-	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + msg.hdr.payload_len);
+	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
+							msg.hdr.payload_len);
 	if (nbytes < 0)
 		return -1;
 
@@ -210,7 +213,8 @@ static int config(knot_msg_config *config)
 	resp.hdr.type = KNOT_MSG_CONFIG_RESP;
 	resp.hdr.payload_len = sizeof(resp.result);
 
-	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) + resp.result);
+	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) +
+								resp.result);
 	if (nbytes < 0)
 		return -1;
 
@@ -333,7 +337,7 @@ int knot_thing_protocol_run(void)
 		 * If flag was found then we read the addresses and send
 		 * the auth request, otherwise register request
 		 */
-		if(uuid_flag && token_flag) {
+		if (uuid_flag && token_flag) {
 			hal_storage_read(KNOT_UUID_ADDR, uuid,
 						KNOT_PROTOCOL_UUID_LEN);
 			hal_storage_read(KNOT_TOKEN_ADDR, token,
