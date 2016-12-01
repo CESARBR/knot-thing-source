@@ -56,14 +56,12 @@ $(KNOT_PROTOCOL_LIB_DIR):  $(KNOT_THING_DOWNLOAD_DIR)
 
 $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	#Creating subdirectories
-	$(MKDIR) -p ./$(KNOT_THING_NAME)/src
 	$(MKDIR) -p ./$(KNOT_THING_NAME)/src/include
 
 	#Filling whith configuraiton files for Arduino IDE
 	# TODO: Create keywords.txt file to KNoT Thing
 	# TODO: Amend keywords of the HAL libs, protocol and thing
 	$(CP) -r $(KNOT_THING_FILES)/library.properties ./$(KNOT_THING_NAME)
-	# $(CP) -r $(KNOT_THING_FILES)/keywords.txt ./$(KNOT_THING_NAME)
 
 	#Filling root and thing directory
 	$(CP) -r $(KNOT_THING_FILES)/*.h ./$(KNOT_THING_NAME)/src
@@ -71,15 +69,12 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	$(CP) -r $(KNOT_THING_FILES)/*.cpp ./$(KNOT_THING_NAME)/src
 
 	#Filling protocol directory
-	# TODO: Check whether to bring Makefile.am
-	$(CP) -r $(KNOT_PROTOCOL_LIB_DIR)/* ./$(KNOT_THING_NAME)/src
+	$(CP) -r $(KNOT_PROTOCOL_LIB_DIR)/*[^*.am] ./$(KNOT_THING_NAME)/src
 
-	#Filling hal directory
-	# TODO: Add to the KNoTThing root keywords.txt content of each keywords.txt HAL lib
-	$(CP) -r $(KNOT_HAL_HDR_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src
+	#Filling hal headers directory
+	$(CP) -r $(KNOT_HAL_HDR_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src/include
 
 	#include folder
-	$(CP) -r $(KNOT_HAL_HDR_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src/include
 	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/log/ \( ! -name '*linux*' -and -name '*.cpp' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
 	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/storage/ \( ! -name '*linux*' -and -name '*.cpp' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
 	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/time/ \( ! -name '*linux*' -and -name '*.cpp' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
