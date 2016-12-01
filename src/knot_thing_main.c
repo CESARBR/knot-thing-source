@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "time.h"
+#include "include/time.h"
 #include "knot_thing_config.h"
 #include "knot_types.h"
 #include "knot_thing_main.h"
