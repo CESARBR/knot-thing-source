@@ -117,15 +117,10 @@ static int read_register(void)
 		if (crdntl.result != KNOT_SUCCESS)
 			return -1;
 
-		hal_storage_write(KNOT_UUID_ADDR, crdntl.uuid,
+		hal_storage_write_end(HAL_STORAGE_ID_UUID, crdntl.uuid,
 						KNOT_PROTOCOL_UUID_LEN);
-		hal_storage_write(KNOT_TOKEN_ADDR, crdntl.token,
+		hal_storage_write_end(HAL_STORAGE_ID_TOKEN, crdntl.token,
 						KNOT_PROTOCOL_TOKEN_LEN);
-
-		hal_storage_write(KNOT_UUID_FLAG_ADDR, buffer,
-							KNOT_UUID_FLAG_LEN);
-		hal_storage_write(KNOT_TOKEN_FLAG_ADDR, buffer,
-							KNOT_TOKEN_FLAG_LEN);
 	} else if (nbytes < 0)
 		return nbytes;
 
