@@ -327,23 +327,15 @@ int knot_thing_protocol_run(void)
 			break;
 		}
 		/*
-		 * uuid/token flags indicate wheter they are
-		 * stored in EEPROM or not
-		 */
-		hal_storage_read(KNOT_UUID_FLAG_ADDR, &uuid_flag,
-						KNOT_UUID_FLAG_LEN);
-		hal_storage_read(KNOT_TOKEN_FLAG_ADDR, &token_flag,
-						KNOT_TOKEN_FLAG_LEN);
-		/*
-		 * If flag was found then we read the addresses and send
+		 * If uuid/token were found, read the addresses and send
 		 * the auth request, otherwise register request
 		 */
-		if (uuid_flag && token_flag) {
-			hal_storage_read(KNOT_UUID_ADDR, uuid,
-						KNOT_PROTOCOL_UUID_LEN);
-			hal_storage_read(KNOT_TOKEN_ADDR, token,
-					KNOT_PROTOCOL_TOKEN_LEN);
-
+		hal_storage_read_end(HAL_STORAGE_ID_UUID, uuid,
+					KNOT_PROTOCOL_UUID_LEN);
+		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, token,
+				KNOT_PROTOCOL_TOKEN_LEN);
+		/* FIXME: Check if UUID format is valid */
+		if (strlen(uuid) == KNOT_PROTOCOL_UUID_LEN) {
 			state = STATE_AUTHENTICATING;
 			if (send_auth() < 0) {
 				previous_state = state;
