@@ -437,7 +437,7 @@ int knot_thing_protocol_run(void)
 		if (ilen > 0) {
 			/* There is config or set data */
 			switch (kreq.hdr.type) {
-			case KNOT_MSG_CONFIG:
+			case KNOT_MSG_SET_CONFIG:
 				config(&kreq.config);
 				break;
 			case KNOT_MSG_SET_DATA:
