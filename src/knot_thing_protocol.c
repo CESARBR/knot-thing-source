@@ -289,11 +289,16 @@ static int send_data(knot_msg_data *msg_data)
 	return 0;
 }
 
+static inline int is_uuid(const char *string)
+{
+	return (strlen(string) == 36 && string[8] == '-' &&
+		string[13] == '-' && string[18] == '-' && string[23] == '-');
+}
+
 int knot_thing_protocol_run(void)
 {
 	static uint8_t state = STATE_DISCONNECTED;
 	static uint8_t previous_state = STATE_DISCONNECTED;
-	uint8_t uuid_flag = 0, token_flag = 0;
 	int retval = 0;
 	ssize_t ilen;
 	knot_msg kreq;
@@ -334,8 +339,8 @@ int knot_thing_protocol_run(void)
 					KNOT_PROTOCOL_UUID_LEN);
 		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, token,
 				KNOT_PROTOCOL_TOKEN_LEN);
-		/* FIXME: Check if UUID format is valid */
-		if (strlen(uuid) == KNOT_PROTOCOL_UUID_LEN) {
+
+		if (!is_uuid(uuid)) {
 			state = STATE_AUTHENTICATING;
 			if (send_auth() < 0) {
 				previous_state = state;
