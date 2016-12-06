@@ -210,7 +210,7 @@ static int config(knot_msg_config *config)
 	resp.hdr.payload_len = sizeof(resp.result);
 
 	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) +
-								resp.result);
+							resp.hdr.payload_len);
 	if (nbytes < 0)
 		return -1;
 
