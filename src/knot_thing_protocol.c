@@ -73,7 +73,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 	schemaf = schema;
 	thing_read = read;
 	thing_write = write;
-	config = config;
+	configf = config;
 	eventf = event;
 }
 
