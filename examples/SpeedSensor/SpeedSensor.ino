@@ -47,5 +47,4 @@ void loop()
 {
     thing.run();
     digitalWrite(LED, speed_value%2); // toggle LED
-    delay(1000);
 }
