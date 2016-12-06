@@ -210,7 +210,7 @@ int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
 	 * number of sensor_id so we know when schema ends;
 	 */
 	if (i == max_sensor_id)
-		msg->hdr.type = KNOT_MSG_SCHEMA | KNOT_MSG_SCHEMA_FLAG_END;
+		msg->hdr.type = KNOT_MSG_SCHEMA_END;
 
 	return KNOT_SUCCESS;
 }
