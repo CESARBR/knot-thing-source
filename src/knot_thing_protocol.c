@@ -205,7 +205,8 @@ static int config(knot_msg_config *config)
 
 	memset(&resp, 0, sizeof(resp));
 
-	resp.result = KNOT_SUCCESS;
+	/* FIXME: Create KNOT_MSG_CONFIG_RESP*/
+	resp.result = config->sensor_id;
 	if (err < 0)
 		resp.result = KNOT_ERROR_UNKNOWN;
 
