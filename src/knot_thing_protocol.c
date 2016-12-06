@@ -244,23 +244,20 @@ static int set_data(knot_msg_data *data)
 static int get_data(knot_msg_data *data)
 {
 	int err;
-	knot_msg_data msg;
 	knot_msg_data data_resp;
 	ssize_t nbytes;
 
 	memset(&data_resp, 0, sizeof(data_resp));
 	err = thing_read(data->sensor_id, &data_resp);
 
-	memset(&msg, 0, sizeof(msg));
-	msg.hdr.type = KNOT_MSG_DATA;
+	data_resp.hdr.type = KNOT_MSG_DATA;
 	if (err < 0)
-		msg.hdr.type = KNOT_ERROR_UNKNOWN;
+		data_resp.hdr.type = KNOT_ERROR_UNKNOWN;
 
-	msg.sensor_id = data->sensor_id;
-	memcpy(&msg.payload, &data_resp, sizeof(data_resp));
+	data_resp.sensor_id = data->sensor_id;
 
-	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
-							msg.hdr.payload_len);
+	nbytes = hal_comm_write(cli_sock, &data_resp, sizeof(data_resp.hdr) +
+						data_resp.hdr.payload_len);
 	if (nbytes < 0)
 		return -1;
 
