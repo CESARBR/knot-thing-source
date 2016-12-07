@@ -222,6 +222,7 @@ static int config(knot_msg_config *config)
 	ssize_t nbytes;
 
 	err = configf(config->sensor_id, config->values.event_flags,
+						config->values.time_sec,
 						&config->values.lower_limit,
 						&config->values.upper_limit);
 

@@ -155,12 +155,15 @@ int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name,
 }
 
 int knot_thing_config_data_item(uint8_t sensor_id, uint8_t event_flags,
-	knot_value_types *lower_limit, knot_value_types *upper_limit)
+	uint16_t time_sec, knot_value_types *lower_limit, knot_value_types *upper_limit)
 {
+	/*FIXME: Check if config is valid */
 	if ((sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(sensor_id) == 0)
 		return -1;
 
 	data_items[sensor_id].config.event_flags = event_flags;
+	data_items[sensor_id].config.time_sec = time_sec;
+
 	if (lower_limit != NULL) {
 		/* As "lower_limit" is a union, we need just to set the "biggest" member */
 		data_items[sensor_id].config.lower_limit.val_f.multiplier	= lower_limit->val_f.multiplier;
