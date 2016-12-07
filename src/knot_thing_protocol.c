@@ -300,7 +300,7 @@ static int send_data(knot_msg_data *msg_data)
 
 static inline int is_uuid(const char *string)
 {
-	return (strlen(string) == 36 && string[8] == '-' &&
+	return (strlen(string) == KNOT_PROTOCOL_UUID_LEN && string[8] == '-' &&
 		string[13] == '-' && string[18] == '-' && string[23] == '-');
 }
 
