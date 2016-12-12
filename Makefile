@@ -85,6 +85,9 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	# Include nrf24l01 headers and source files
 	$(FIND) ./$(KNOT_HAL_SRC_NRF_LIB_DIR)/ \( \( -name '*.c' -or -name '*.h' \) -and ! -name '*linux*' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
 
+ 	# Include gpio headers and source files
+	$(CP) -r ./$(KNOT_HAL_SRC_DRIVERS_LIB_DIR)/gpio/*.c ./$(KNOT_THING_NAME)/src
+
 	# Include drivers headers and source files
 	$(CP) -r ./$(KNOT_HAL_SRC_DRIVERS_LIB_DIR)/*.c ./$(KNOT_THING_NAME)/src
 	$(CP) -r ./$(KNOT_HAL_SRC_DRIVERS_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src
