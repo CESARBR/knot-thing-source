@@ -16,6 +16,7 @@
 #include "include/storage.h"
 #include "include/comm.h"
 #include "include/nrf24.h"
+#include "include/time.h"
 
 /*KNoT client storage mapping */
 #define KNOT_UUID_FLAG_ADDR		0
@@ -51,18 +52,19 @@ static config_function configf;
 static int sock = -1;
 static events_function eventf;
 static int cli_sock = -1;
+static struct nrf24_mac addr;
 
 /*
  * FIXME: Thing address should be received via NFC
  * Mac address must be stored in big endian format
  */
-void set_nrf24MAC(struct nrf24_mac *mac)
+void set_nrf24MAC()
 {
 	uint8_t mac_mask = 4;
-	memset(mac, 0, sizeof(struct nrf24_mac));
-	hal_getrandom(mac->address.b + mac_mask,
-					sizeof(mac) - mac_mask);
-	hal_storage_write_end(HAL_STORAGE_ID_MAC, mac, sizeof(*mac));
+	memset(&addr, 0, sizeof(struct nrf24_mac));
+	hal_getrandom(addr.address.b + mac_mask,
+					sizeof(struct nrf24_mac) - mac_mask);
+	hal_storage_write_end(HAL_STORAGE_ID_MAC, &addr, sizeof(struct nrf24_mac));
 }
 
 int knot_thing_protocol_init(const char *thing_name, data_function read,
@@ -70,6 +72,9 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 							events_function event)
 {
 	int len;
+
+	/* Set mac address */
+	set_nrf24MAC();
 
 	if (hal_comm_init("NRF0") < 0)
 		return -1;
@@ -307,12 +312,8 @@ int knot_thing_protocol_run(void)
 	ssize_t ilen;
 	knot_msg kreq;
 	knot_msg_data msg_data;
-	struct nrf24_mac addr;
 
 	memset(&msg_data, 0, sizeof(msg_data));
-
-	/* Set mac address */
-	set_nrf24MAC(&addr);
 
 	if (enable_run == 0)
 		return -1;
