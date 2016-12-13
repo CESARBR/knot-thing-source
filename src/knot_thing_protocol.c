@@ -35,12 +35,13 @@
 /* KNoT protocol client states */
 #define STATE_DISCONNECTED		0
 #define STATE_CONNECTING		1
-#define STATE_AUTHENTICATING		2
-#define STATE_REGISTERING		3
-#define STATE_SCHEMA			4
-#define STATE_SCHEMA_RESP		5
-#define STATE_ONLINE			6
-#define STATE_ERROR			7
+#define STATE_SETUP			2
+#define STATE_AUTHENTICATING		3
+#define STATE_REGISTERING		4
+#define STATE_SCHEMA			5
+#define STATE_SCHEMA_RESP		6
+#define STATE_ONLINE			7
+#define STATE_ERROR			8
 #define STATE_MAX			(STATE_ERROR+1)
 
 #ifndef MIN
@@ -385,6 +386,9 @@ int knot_thing_protocol_run(void)
 			state = STATE_ERROR;
 			break;
 		}
+		state = STATE_SETUP;
+		break;
+	case STATE_SETUP:
 		/*
 		 * If uuid/token were found, read the addresses and send
 		 * the auth request, otherwise register request
@@ -407,6 +411,7 @@ int knot_thing_protocol_run(void)
 				state = STATE_ERROR;
 			}
 		}
+		last_timeout = hal_time_ms();
 		break;
 	/*
 	 * Authenticating, Resgistering cases waits (without blocking)
@@ -420,7 +425,9 @@ int knot_thing_protocol_run(void)
 		else if (retval != -EAGAIN) {
 			previous_state = state;
 			state = STATE_ERROR;
-		}
+		} else if (hal_timeout(hal_time_ms(), last_timeout,
+						RETRANSMISSION_TIMEOUT) > 0)
+			state = STATE_SETUP;
 		break;
 
 	case STATE_REGISTERING:
@@ -430,7 +437,9 @@ int knot_thing_protocol_run(void)
 		else if (retval != -EAGAIN) {
 			previous_state = state;
 			state = STATE_ERROR;
-		}
+		}  else if (hal_timeout(hal_time_ms(), last_timeout,
+						RETRANSMISSION_TIMEOUT) > 0)
+			state = STATE_SETUP;
 		break;
 	/*
 	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
