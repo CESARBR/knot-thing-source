@@ -391,6 +391,7 @@ int knot_thing_protocol_run(void)
 	 */
 	if (clear_data()) {
 		hal_storage_reset_end();
+		hal_comm_close(cli_sock);
 		state = STATE_DISCONNECTED;
 		previous_state = STATE_DISCONNECTED;
 		return 0;
