@@ -398,7 +398,7 @@ int knot_thing_protocol_run(void)
 		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, token,
 				KNOT_PROTOCOL_TOKEN_LEN);
 
-		if (!is_uuid(uuid)) {
+		if (is_uuid(uuid)) {
 			state = STATE_AUTHENTICATING;
 			if (send_auth() < 0) {
 				previous_state = state;
