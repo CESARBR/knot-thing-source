@@ -19,8 +19,8 @@
 #include "include/avr_errno.h"
 #include "include/avr_unistd.h"
 #include "include/storage.h"
-#include "include/comm.h"
 #include "include/nrf24.h"
+#include "include/comm.h"
 #include "include/gpio.h"
 #include "include/time.h"
 
