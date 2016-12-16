@@ -35,13 +35,14 @@
 /* KNoT protocol client states */
 #define STATE_DISCONNECTED		0
 #define STATE_CONNECTING		1
-#define STATE_SETUP			2
-#define STATE_AUTHENTICATING		3
-#define STATE_REGISTERING		4
-#define STATE_SCHEMA			5
-#define STATE_SCHEMA_RESP		6
-#define STATE_ONLINE			7
-#define STATE_ERROR			8
+#define STATE_CONNECTED			2
+#define STATE_SETUP			3
+#define STATE_AUTHENTICATING		4
+#define STATE_REGISTERING		5
+#define STATE_SCHEMA			6
+#define STATE_SCHEMA_RESP		7
+#define STATE_ONLINE			8
+#define STATE_ERROR			9
 #define STATE_MAX			(STATE_ERROR+1)
 
 /* KNoT MTU */
@@ -372,58 +373,29 @@ static int8_t mgmt_read(void)
 	return -1;
 }
 
-int knot_thing_protocol_run(void)
+static uint8_t knot_thing_protocol_connected(bool breset)
 {
-	static uint8_t state = STATE_DISCONNECTED;
-	static uint8_t previous_state = STATE_DISCONNECTED;
-	int retval = 0;
+	static uint8_t	state = STATE_SETUP,
+			previous_state = STATE_DISCONNECTED;
+	int retval;
 	ssize_t ilen;
 	knot_msg kreq;
 	knot_msg_data msg_data;
 
 	memset(&msg_data, 0, sizeof(msg_data));
 
-	if (enable_run == 0)
-		return -1;
+	if (breset)
+		state = STATE_SETUP;
 
-	/*
-	 * Verifies if the button for eeprom clear is pressed for more than 5s
-	 */
-	if (clear_data()) {
-		hal_storage_reset_end();
-		hal_comm_close(cli_sock);
-		state = STATE_DISCONNECTED;
-		previous_state = STATE_DISCONNECTED;
-		return 0;
+	if (state != STATE_ERROR) {
+		if (mgmt_read() == 0)
+			return STATE_DISCONNECTED;
+
+		previous_state = state;
 	}
-
-	if (!mgmt_read())
-		state = STATE_ERROR;
 
 	/* Network message handling state machine */
 	switch (state) {
-	case STATE_DISCONNECTED:
-		/* Internally listen starts broadcasting presence*/
-		if (hal_comm_listen(sock) < 0)
-			state = STATE_ERROR;
-
-		state = STATE_CONNECTING;
-		break;
-
-	case STATE_CONNECTING:
-		/*
-		 * Try to accept GW connection request. EAGAIN means keep
-		 * waiting, less then 0 means error and greater then 0 success
-		 */
-		cli_sock = hal_comm_accept(sock, &(addr.address.uint64));
-		if (cli_sock == -EAGAIN)
-			break;
-		else if (cli_sock < 0) {
-			state = STATE_ERROR;
-			break;
-		}
-		state = STATE_SETUP;
-		break;
 	case STATE_SETUP:
 		/*
 		 * If uuid/token were found, read the addresses and send
@@ -438,16 +410,12 @@ int knot_thing_protocol_run(void)
 
 		if (is_uuid(uuid)) {
 			state = STATE_AUTHENTICATING;
-			if (send_auth() < 0) {
-				previous_state = state;
+			if (send_auth() < 0)
 				state = STATE_ERROR;
-			}
 		} else {
 			state = STATE_REGISTERING;
-			if (send_register() < 0) {
-				previous_state = state;
+			if (send_register() < 0)
 				state = STATE_ERROR;
-			}
 		}
 		last_timeout = hal_time_ms();
 		break;
@@ -460,10 +428,9 @@ int knot_thing_protocol_run(void)
 		retval = read_auth();
 		if (!retval)
 			state = STATE_ONLINE;
-		else if (retval != -EAGAIN) {
-			previous_state = state;
+		else if (retval != -EAGAIN)
 			state = STATE_ERROR;
-		} else if (hal_timeout(hal_time_ms(), last_timeout,
+		else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
 			state = STATE_SETUP;
 		break;
@@ -472,10 +439,9 @@ int knot_thing_protocol_run(void)
 		retval = read_register();
 		if (!retval)
 			state = STATE_SCHEMA;
-		else if (retval != -EAGAIN) {
-			previous_state = state;
+		else if (retval != -EAGAIN)
 			state = STATE_ERROR;
-		}  else if (hal_timeout(hal_time_ms(), last_timeout,
+		else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
 			state = STATE_SETUP;
 		break;
@@ -493,7 +459,6 @@ int knot_thing_protocol_run(void)
 			state = STATE_SCHEMA_RESP;
 			break;
 		case KNOT_ERROR_UNKNOWN:
-			previous_state = state;
 			state = STATE_ERROR;
 			break;
 		case KNOT_SCHEMA_EMPTY:
@@ -505,6 +470,7 @@ int knot_thing_protocol_run(void)
 			break;
 		}
 		break;
+
 	/*
 	 * Receives the ack from the GW and returns to STATE_SCHEMA to send the
 	 * next schema. If it was the ack for the last schema, goes to
@@ -518,7 +484,6 @@ int knot_thing_protocol_run(void)
 				kreq.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
 				break;
 			if (kreq.action.result != KNOT_SUCCESS) {
-				previous_state = state;
 				state = STATE_ERROR;
 				break;
 			}
@@ -532,7 +497,7 @@ int knot_thing_protocol_run(void)
 		} else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
 			state = STATE_SCHEMA;
-	break;
+		break;
 
 	case STATE_ONLINE:
 		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
@@ -542,18 +507,20 @@ int knot_thing_protocol_run(void)
 			case KNOT_MSG_SET_CONFIG:
 				config(&kreq.config);
 				break;
+
 			case KNOT_MSG_SET_DATA:
 				set_data(&kreq.data);
 				break;
+
 			case KNOT_MSG_GET_DATA:
 				get_data(&kreq.data);
 				break;
+
 			case KNOT_MSG_DATA_RESP:
-				if (data_resp(&kreq.action)) {
-					previous_state = state;
+				if (data_resp(&kreq.action))
 					state = STATE_ERROR;
-				}
 				break;
+
 			default:
 				/* Invalid command */
 				break;
@@ -563,8 +530,7 @@ int knot_thing_protocol_run(void)
 		if (eventf(&msg_data) == 0)
 			if (send_data(&msg_data) < 0)
 				state = STATE_ERROR;
-
-	break;
+		break;
 
 	case STATE_ERROR:
 		//TODO: log error
@@ -584,14 +550,68 @@ int knot_thing_protocol_run(void)
 		case STATE_ONLINE:
 			break;
 		}
-		state = STATE_DISCONNECTED;
-	break;
+		previous_state = STATE_DISCONNECTED;
+		return STATE_DISCONNECTED;
 
 	default:
 		//TODO: log invalid state
 		//TODO: close connection if needed
+		return STATE_DISCONNECTED;
+	}
+
+	return STATE_CONNECTED;
+}
+
+int knot_thing_protocol_run(void)
+{
+	static uint8_t	state = STATE_DISCONNECTED;
+
+	if (enable_run == 0)
+		return -1;
+
+	/*
+	 * Verifies if the button for eeprom clear is pressed for more than 5s
+	 */
+	if (clear_data()) {
+		hal_storage_reset_end();
+		hal_comm_close(cli_sock);
 		state = STATE_DISCONNECTED;
-	break;
+	}
+
+	/* Network message handling state machine */
+	switch (state) {
+	case STATE_DISCONNECTED:
+		/* Internally listen starts broadcasting presence*/
+		if (hal_comm_listen(sock) < 0)
+			break;
+
+		state = STATE_CONNECTING;
+		break;
+
+	case STATE_CONNECTING:
+		/*
+		 * Try to accept GW connection request. EAGAIN means keep
+		 * waiting, less then 0 means error and greater then 0 success
+		 */
+		cli_sock = hal_comm_accept(sock, &(addr.address.uint64));
+		if (cli_sock == -EAGAIN)
+			break;
+		else if (cli_sock < 0) {
+			state = STATE_DISCONNECTED;
+			break;
+		}
+		state = knot_thing_protocol_connected(true);
+		break;
+
+	case STATE_CONNECTED:
+		state = knot_thing_protocol_connected(false);
+		break;
+
+	default:
+		/* TODO: log invalid state */
+		/* TODO: close connection if needed */
+		state = STATE_DISCONNECTED;
+		break;
 	}
 
 	return 0;
