@@ -367,9 +367,9 @@ static int8_t mgmt_read(void)
 
 	case MGMT_EVT_NRF24_DISCONNECTED:
 		hal_comm_close(cli_sock);
-		break;
+		return 0;
 	}
-	return 0;
+	return -1;
 }
 
 int knot_thing_protocol_run(void)
