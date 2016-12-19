@@ -52,8 +52,8 @@
 #define RETRANSMISSION_TIMEOUT				20000
 
 static uint8_t enable_run = 0, schema_sensor_id = 0;
-static char uuid[KNOT_PROTOCOL_UUID_LEN];
-static char token[KNOT_PROTOCOL_TOKEN_LEN];
+static char uuid[KNOT_PROTOCOL_UUID_LEN + 1];
+static char token[KNOT_PROTOCOL_TOKEN_LEN + 1];
 static char device_name[KNOT_PROTOCOL_DEVICE_NAME_LEN];
 static schema_function schemaf;
 static data_function thing_read;
@@ -393,6 +393,8 @@ int knot_thing_protocol_run(void)
 		 * If uuid/token were found, read the addresses and send
 		 * the auth request, otherwise register request
 		 */
+		memset(uuid, 0, sizeof(uuid));
+		memset(token, 0, sizeof(token));
 		hal_storage_read_end(HAL_STORAGE_ID_UUID, uuid,
 					KNOT_PROTOCOL_UUID_LEN);
 		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, token,
