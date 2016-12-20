@@ -95,6 +95,9 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	# Include SPI headers and source files
 	$(FIND) ./$(KNOT_HAL_SRC_SPI_LIB_DIR)/ \( \( -name '*.c' -or -name '*.h' \) -and ! -name '*linux*' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
 
+	# Include examples files
+	$(CP) -r ./examples/ ./$(KNOT_THING_NAME)
+
 	#Zip directory
 	$(ZIP) -r $(KNOT_THING_TARGET) ./$(KNOT_THING_NAME)
 
