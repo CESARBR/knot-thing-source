@@ -12,7 +12,7 @@
 
 #ifdef ARDUINO
 #include <Arduino.h>
-#define CLEAR_EEPROM_PIN 5
+#define CLEAR_EEPROM_PIN 7
 #endif
 
 #include "knot_thing_protocol.h"
