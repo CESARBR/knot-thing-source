@@ -79,7 +79,8 @@ void set_nrf24MAC()
 	memset(&addr, 0, sizeof(struct nrf24_mac));
 	hal_getrandom(addr.address.b + mac_mask,
 					sizeof(struct nrf24_mac) - mac_mask);
-	hal_storage_write_end(HAL_STORAGE_ID_MAC, &addr, sizeof(struct nrf24_mac));
+	hal_storage_write_end(HAL_STORAGE_ID_MAC, &addr,
+						sizeof(struct nrf24_mac));
 }
 static unsigned long time;
 static uint32_t last_timeout;
@@ -92,8 +93,12 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 
 	hal_gpio_pin_mode(CLEAR_EEPROM_PIN, INPUT_PULLUP);
 
-	/* Set mac address */
-	set_nrf24MAC();
+	/* Set mac address if it's invalid on eeprom */
+	hal_storage_read_end(HAL_STORAGE_ID_MAC, &addr,
+						sizeof(struct nrf24_mac));
+	if ((addr.address.uint64 & 0x00000000ffffffff) != 0 ||
+						addr.address.uint64 == 0)
+		set_nrf24MAC();
 
 	if (hal_comm_init("NRF0", NULL) < 0)
 		return -1;
@@ -584,6 +589,7 @@ int knot_thing_protocol_run(void)
 		hal_storage_reset_end();
 		hal_comm_close(cli_sock);
 		state = STATE_DISCONNECTED;
+		set_nrf24MAC();
 	}
 
 	/* Network message handling state machine */
