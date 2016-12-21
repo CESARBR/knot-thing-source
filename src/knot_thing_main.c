@@ -332,7 +332,7 @@ int8_t knot_thing_run(void)
 
 int verify_events(knot_msg_data *data)
 {
-	uint8_t err = 0, comparison = 0;
+	uint8_t comparison = 0;
 	/* Current time in miliseconds to verify sensor timeout */
 	uint32_t current_time = hal_time_ms();
 
@@ -341,7 +341,8 @@ int verify_events(knot_msg_data *data)
 	 * changed according to the events registered.
 	 */
 
-	err = data_item_read(evt_sensor_id, data);
+	if (data_item_read(evt_sensor_id, data) < 0)
+		return -1;
 
 	if (evt_sensor_id < 0 || (evt_sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(evt_sensor_id) == 0) {
 		evt_sensor_id++;
