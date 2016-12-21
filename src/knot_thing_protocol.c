@@ -166,7 +166,6 @@ static int read_register(void)
 static int send_auth(void)
 {
 	knot_msg_authentication msg;
-	knot_msg_result resp;
 	ssize_t nbytes;
 
 	memset(&msg, 0, sizeof(msg));
