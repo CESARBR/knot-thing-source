@@ -144,7 +144,6 @@ static int read_register(void)
 {
 	ssize_t nbytes;
 	knot_msg_credential crdntl;
-	const uint8_t buffer[] = { 0x01 };
 
 	memset(&crdntl, 0, sizeof(crdntl));
 
