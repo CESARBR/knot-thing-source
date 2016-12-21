@@ -97,8 +97,10 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 	hal_storage_read_end(HAL_STORAGE_ID_MAC, &addr,
 						sizeof(struct nrf24_mac));
 	if ((addr.address.uint64 & 0x00000000ffffffff) != 0 ||
-						addr.address.uint64 == 0)
+						addr.address.uint64 == 0) {
+		hal_storage_reset_end();
 		set_nrf24MAC();
+	}
 
 	if (hal_comm_init("NRF0", NULL) < 0)
 		return -1;
