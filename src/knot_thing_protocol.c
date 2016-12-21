@@ -112,6 +112,8 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 	configf = config;
 	eventf = event;
 	last_timeout = 0;
+
+	return 0;
 }
 
 void knot_thing_protocol_exit(void)
