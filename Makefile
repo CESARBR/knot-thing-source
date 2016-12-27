@@ -57,6 +57,7 @@ $(KNOT_PROTOCOL_LIB_DIR):  $(KNOT_THING_DOWNLOAD_DIR)
 $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	#Creating subdirectories
 	$(MKDIR) -p ./$(KNOT_THING_NAME)/src/include
+	$(MKDIR) -p ./$(KNOT_THING_NAME)/examples
 
 	#Filling whith configuraiton files for Arduino IDE
 	# TODO: Create keywords.txt file to KNoT Thing
@@ -96,7 +97,7 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	$(FIND) ./$(KNOT_HAL_SRC_SPI_LIB_DIR)/ \( \( -name '*.c' -or -name '*.h' \) -and ! -name '*linux*' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
 
 	# Include examples files
-	$(CP) -r ./examples/ ./$(KNOT_THING_NAME)
+	$(CP) -r ./examples/* ./$(KNOT_THING_NAME)/examples/
 
 	#Zip directory
 	$(ZIP) -r $(KNOT_THING_TARGET) ./$(KNOT_THING_NAME)
