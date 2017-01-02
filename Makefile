@@ -24,11 +24,17 @@ KNOT_THING_BUILD_DIR = build
 
 #Dependencies
 KNOT_PROTOCOL_LIB_VERSION = master
+ifdef release
+	KNOT_PROTOCOL_LIB_VERSION = $(release)
+endif
 KNOT_PROTOCOL_LIB_REPO = knot-protocol-source
 KNOT_PROTOCOL_LIB_SITE = https://github.com/CESARBR/$(KNOT_PROTOCOL_LIB_REPO).git
 KNOT_PROTOCOL_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_PROTOCOL_LIB_REPO)/src
 
 KNOT_HAL_LIB_VERSION = master
+ifdef release
+	KNOT_HAL_LIB_VERSION = $(release)
+endif
 KNOT_HAL_LIB_REPO = knot-hal-source
 KNOT_HAL_LIB_SITE = https://github.com/CESARBR/$(KNOT_HAL_LIB_REPO).git
 KNOT_HAL_HDR_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)/include
@@ -44,6 +50,7 @@ default: all
 
 all:  $(KNOT_THING_TARGET)
 
+
 $(KNOT_THING_DOWNLOAD_DIR):
 	$(MKDIR) -p ./$(KNOT_THING_DOWNLOAD_DIR)
 
@@ -57,7 +64,6 @@ $(KNOT_PROTOCOL_LIB_DIR):  $(KNOT_THING_DOWNLOAD_DIR)
 $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	#Creating subdirectories
 	$(MKDIR) -p ./$(KNOT_THING_NAME)/src/include
-	$(MKDIR) -p ./$(KNOT_THING_NAME)/examples
 
 	#Filling whith configuraiton files for Arduino IDE
 	# TODO: Create keywords.txt file to KNoT Thing
@@ -97,7 +103,7 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	$(FIND) ./$(KNOT_HAL_SRC_SPI_LIB_DIR)/ \( \( -name '*.c' -or -name '*.h' \) -and ! -name '*linux*' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
 
 	# Include examples files
-	$(CP) -r ./examples/* ./$(KNOT_THING_NAME)/examples/
+	$(CP) -r ./examples/ ./$(KNOT_THING_NAME)
 
 	#Zip directory
 	$(ZIP) -r $(KNOT_THING_TARGET) ./$(KNOT_THING_NAME)
