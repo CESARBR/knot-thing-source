@@ -224,6 +224,10 @@ static int data_item_read(uint8_t sensor_id, knot_msg_data *data)
 	int32_t int32_val = 0, multiplier = 0;
 	uint32_t uint32_val = 0;
 
+	/*
+	* TODO: This verification is alredy done at verify_events, maybe
+	* doesn`t need to do it again.
+	*/
 	if ((sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(sensor_id) == 0)
 		return -1;
 
@@ -341,13 +345,19 @@ int verify_events(knot_msg_data *data)
 	 * changed according to the events registered.
 	 */
 
-	if (data_item_read(evt_sensor_id, data) < 0)
+	if (evt_sensor_id >= KNOT_THING_DATA_MAX) {
+		evt_sensor_id = 0;
 		return -1;
-
-	if ((evt_sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(evt_sensor_id) == 0) {
+	} else if (item_is_unregistered(evt_sensor_id) == 0) {
 		evt_sensor_id++;
 		return -1;
 	}
+
+	if (data_item_read(evt_sensor_id, data) < 0) {
+		evt_sensor_id++;
+		return -1;
+	}
+
 	/* Value did not change or error: return -1, 0 means send data */
 	if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_RAW) {
 
@@ -420,7 +430,7 @@ int verify_events(knot_msg_data *data)
 	data->sensor_id = evt_sensor_id;
 	evt_sensor_id++;
 
-	if (evt_sensor_id == max_sensor_id)
+	if (evt_sensor_id > max_sensor_id)
 		evt_sensor_id = 0;
 
 	// Nothing changed
