@@ -67,6 +67,7 @@ static int sock = -1;
 static events_function eventf;
 static int cli_sock = -1;
 static struct nrf24_mac addr;
+static bool schema_flag = false;
 
 /*
  * FIXME: Thing address should be received via NFC
@@ -426,8 +427,14 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 */
 	case STATE_AUTHENTICATING:
 		retval = read_auth();
-		if (!retval)
+		if (!retval) {
 			state = STATE_ONLINE;
+			/* Checks if all the schemas were sent to the GW and */
+			hal_storage_read_end(HAL_STORAGE_ID_SCHEMA_FLAG,
+					&schema_flag, sizeof(schema_flag));
+			if (!schema_flag)
+				state = STATE_SCHEMA;
+		}
 		else if (retval != -EAGAIN)
 			state = STATE_ERROR;
 		else if (hal_timeout(hal_time_ms(), last_timeout,
@@ -492,6 +499,10 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				schema_sensor_id++;
 				break;
 			}
+			/* All the schemas were sent to GW */
+			schema_flag = true;
+			hal_storage_write_end(HAL_STORAGE_ID_SCHEMA_FLAG,
+					&schema_flag, sizeof(schema_flag));
 			state = STATE_ONLINE;
 			schema_sensor_id = 0;
 		} else if (hal_timeout(hal_time_ms(), last_timeout,
