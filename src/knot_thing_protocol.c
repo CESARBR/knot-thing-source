@@ -237,13 +237,11 @@ static int config(knot_msg_config *config)
 						&config->values.lower_limit,
 						&config->values.upper_limit);
 
+	if (err)
+		return KNOT_ERROR_UNKNOWN;
+
 	memset(&resp, 0, sizeof(resp));
-
-	/* FIXME: Send response only if the config was successfully stored */
 	resp.sensor_id = config->sensor_id;
-	if (err < 0)
-		resp.sensor_id = KNOT_ERROR_UNKNOWN;
-
 	resp.hdr.type = KNOT_MSG_CONFIG_RESP;
 	resp.hdr.payload_len = sizeof(resp.sensor_id);
 
