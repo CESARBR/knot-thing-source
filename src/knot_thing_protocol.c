@@ -229,7 +229,7 @@ static int send_schema(void)
 static int config(knot_msg_config *config)
 {
 	int err;
-	knot_msg_result resp;
+	knot_msg_item resp;
 	ssize_t nbytes;
 
 	err = configf(config->sensor_id, config->values.event_flags,
@@ -239,14 +239,13 @@ static int config(knot_msg_config *config)
 
 	memset(&resp, 0, sizeof(resp));
 
-	/* FIXME: Create KNOT_MSG_CONFIG_RESP*/
-	resp.result = config->sensor_id;
+	/* FIXME: Send response only if the config was successfully stored */
+	resp.sensor_id = config->sensor_id;
 	if (err < 0)
-		resp.result = KNOT_ERROR_UNKNOWN;
-
+		resp.sensor_id = KNOT_ERROR_UNKNOWN;
 
 	resp.hdr.type = KNOT_MSG_CONFIG_RESP;
-	resp.hdr.payload_len = sizeof(resp.result);
+	resp.hdr.payload_len = sizeof(resp.sensor_id);
 
 	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) +
 							resp.hdr.payload_len);
@@ -280,20 +279,20 @@ static int set_data(knot_msg_data *data)
 	return 0;
 }
 
-static int get_data(knot_msg_data *data)
+static int get_data(knot_msg_item *item)
 {
 	int err;
 	knot_msg_data data_resp;
 	ssize_t nbytes;
 
 	memset(&data_resp, 0, sizeof(data_resp));
-	err = thing_read(data->sensor_id, &data_resp);
+	err = thing_read(item->sensor_id, &data_resp);
 
 	data_resp.hdr.type = KNOT_MSG_DATA;
 	if (err < 0)
 		data_resp.hdr.type = KNOT_ERROR_UNKNOWN;
 
-	data_resp.sensor_id = data->sensor_id;
+	data_resp.sensor_id = item->sensor_id;
 
 	nbytes = hal_comm_write(cli_sock, &data_resp, sizeof(data_resp.hdr) +
 						data_resp.hdr.payload_len);
@@ -524,7 +523,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				break;
 
 			case KNOT_MSG_GET_DATA:
-				get_data(&kreq.data);
+				get_data(&kreq.item);
 				break;
 
 			case KNOT_MSG_DATA_RESP:
