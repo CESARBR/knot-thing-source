@@ -342,7 +342,7 @@ int8_t knot_thing_run(void)
 	return knot_thing_protocol_run();
 }
 
-int verify_events(knot_msg_data *data)
+static int verify_events(knot_msg_data *data)
 {
 	uint8_t comparison = 0;
 	/* Current time in miliseconds to verify sensor timeout */
