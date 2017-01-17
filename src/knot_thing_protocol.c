@@ -45,6 +45,11 @@
 #define STATE_ERROR			9
 #define STATE_MAX			(STATE_ERROR+1)
 
+/* Led used to show status on thing */
+#define PIN_LED_STATUS			4
+#define LONG_INTERVAL			2500
+#define SHORT_INTERVAL			150
+
 /* KNoT MTU */
 #define MTU 256
 
@@ -52,7 +57,7 @@
 #define MIN(a,b)			(((a) < (b)) ? (a) : (b))
 #endif
 
-/* Retransmission timeout in ms*/
+/* Retransmission timeout in ms */
 #define RETRANSMISSION_TIMEOUT				20000
 
 static uint8_t enable_run = 0, schema_sensor_id = 0;
@@ -68,6 +73,11 @@ static events_function eventf;
 static int cli_sock = -1;
 static struct nrf24_mac addr;
 static bool schema_flag = false;
+
+/* Led status control variables */
+static uint32_t current_status_time, previous_status_time = 0;
+static uint8_t nblink, led_state, previous_led_state = LOW;
+static uint16_t status_interval;
 
 /*
  * FIXME: Thing address should be received via NFC
@@ -91,6 +101,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 {
 	int len;
 
+	hal_gpio_pin_mode(PIN_LED_STATUS, OUTPUT);
 	hal_gpio_pin_mode(CLEAR_EEPROM_PIN, INPUT_PULLUP);
 
 	/* Set mac address if it's invalid on eeprom */
@@ -128,6 +139,45 @@ void knot_thing_protocol_exit(void)
 {
 	hal_comm_close(sock);
 	enable_run = 0;
+}
+
+/*
+ * The function receives status of the status machine as a parameter
+ * For each state, represented as a number n, the status LED should flash 2 * n
+ * (once to light, another to turn off)
+ */
+static void led_status(uint8_t status)
+{
+
+	current_status_time = hal_time_ms();
+
+	/*
+	 * If the LED has lit and off twice the state,
+	 * a set a long interval
+	 */
+	if (nblink >= status * 2) {
+		nblink = 0;
+		status_interval = LONG_INTERVAL;
+	}
+
+	/*
+	 * Ensures that whenever the status changes,
+	 * the blink starts by turning on the LED
+	 **/
+	if (status != previous_led_state) {
+		previous_led_state = status;
+		led_state = LOW;
+	}
+
+	if ((current_status_time - previous_status_time) >= status_interval) {
+		previous_status_time = current_status_time;
+		led_state = !led_state;
+		hal_gpio_digital_write(PIN_LED_STATUS, led_state);
+
+		nblink++;
+		status_interval = SHORT_INTERVAL;
+	}
+
 }
 
 static int send_register(void)
@@ -406,6 +456,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		 * If uuid/token were found, read the addresses and send
 		 * the auth request, otherwise register request
 		 */
+		led_status(STATE_SETUP);
 		memset(uuid, 0, sizeof(uuid));
 		memset(token, 0, sizeof(token));
 		hal_storage_read_end(HAL_STORAGE_ID_UUID, uuid,
@@ -430,6 +481,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 * nothing to read so we ignore it, less then 0 an error and 0 success
 	 */
 	case STATE_AUTHENTICATING:
+		led_status(STATE_AUTHENTICATING);
 		retval = read_auth();
 		if (!retval) {
 			state = STATE_ONLINE;
@@ -447,6 +499,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		break;
 
 	case STATE_REGISTERING:
+		led_status(STATE_REGISTERING);
 		retval = read_register();
 		if (!retval)
 			state = STATE_SCHEMA;
@@ -463,6 +516,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 * error occurs, goes to STATE_ERROR.
 	 */
 	case STATE_SCHEMA:
+		led_status(STATE_SCHEMA);
 		retval = send_schema();
 		switch (retval) {
 		case KNOT_SUCCESS:
@@ -489,6 +543,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 * result was not KNOT_SUCCESS, goes to STATE_ERROR.
 	 */
 	case STATE_SCHEMA_RESP:
+		led_status(STATE_SCHEMA_RESP);
 		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
 		if (ilen > 0) {
 			if (kreq.hdr.type != KNOT_MSG_SCHEMA_RESP &&
@@ -515,6 +570,8 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		break;
 
 	case STATE_ONLINE:
+		led_status(STATE_ONLINE);
+
 		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
 		if (ilen > 0) {
 			/* There is config or set data */
@@ -551,6 +608,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		//TODO: log error
 		//TODO: close connection if needed
 		//TODO: wait 1s
+		led_status(STATE_ERROR);
 		switch (previous_state) {
 		case STATE_CONNECTING:
 			break;
@@ -598,6 +656,7 @@ int knot_thing_protocol_run(void)
 	switch (state) {
 	case STATE_DISCONNECTED:
 		/* Internally listen starts broadcasting presence*/
+		led_status(STATE_DISCONNECTED);
 		if (hal_comm_listen(sock) < 0)
 			break;
 
@@ -609,6 +668,7 @@ int knot_thing_protocol_run(void)
 		 * Try to accept GW connection request. EAGAIN means keep
 		 * waiting, less then 0 means error and greater then 0 success
 		 */
+		led_status(STATE_CONNECTING);
 		cli_sock = hal_comm_accept(sock, &(addr.address.uint64));
 		if (cli_sock == -EAGAIN)
 			break;
