@@ -12,6 +12,7 @@
 
 #define SCALE_ID            2
 #define SCALE_NAME          "Scale"
+#define BUTTON_PIN          3
 
 KNoTThing thing;
 HX711 scale(A3, A2);
@@ -23,20 +24,35 @@ static float k2 = 9622553;
 static float ref_w = 62.6;
 
 static float raw_kg,kg;
-static float offset;
+static float offset = 0;
+static float mes, a, b;
 
-static int scale_read(int32_t *val_int, int32_t *multiplier)
+int button_value_current, button_value_previous = 0;
+
+static float get_weight(byte times)
 {
-    int32_t tmp;
-    float mes;
-    float a;
-    float b;
-
-    mes = scale.get_value(5);
+    mes = scale.get_value(times);
     a = ref_w/(k2 - k1);
     b = (-1)*ref_w*k1/(k2-k1);
     raw_kg = a*mes + b;
-    kg = raw_kg - offset;
+
+    return raw_kg;
+}
+
+static int scale_read(int32_t *val_int, int32_t *multiplier)
+{
+    button_value_current =  digitalRead(BUTTON_PIN);
+
+    /* Tares de scale when the button is pressed */
+    if ((button_value_current == HIGH) && (button_value_previous == LOW)) {
+        offset = get_weight(20);
+        Serial.print("New offset: ");
+        Serial.println(offset);
+    }
+
+    button_value_previous = button_value_current;
+
+    kg = get_weight(5) - offset;
 
     /*
      *  MASS units are defined as type INT in the knot_protocol
@@ -65,29 +81,17 @@ static int scale_write(int32_t *val_int, int32_t *multiplier)
 
 void setup()
 {
-    float mes;
-    float a;
-    float b;
-
     Serial.begin(9600);
     scale.power_up();
 
     thing.init("KNoTThing");
     thing.registerIntData(SCALE_NAME, SCALE_ID, KNOT_TYPE_ID_MASS,
-					KNOT_UNIT_MASS_G, scale_read, scale_write);
+                    KNOT_UNIT_MASS_G, scale_read, scale_write);
     Serial.println("Water Fountain KNoT Demo");
-
-    /* Tares de scale when turning on */
-    mes = scale.get_value(20);
-    a = ref_w/(k2 - k1);
-    b = (-1)*ref_w*k1/(k2-k1);
-    raw_kg = a*mes + b;
-    offset = raw_kg;
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
 }
-
 
 void loop()
 {
     thing.run();
-    /* TODO: Handle the button to set tare via hardware */
 }
