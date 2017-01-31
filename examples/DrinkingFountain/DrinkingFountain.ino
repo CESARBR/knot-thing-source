@@ -17,6 +17,7 @@
 #define TIMES_READING       20
 #define TARE_BUTTON_PIN     3
 #define READ_INTERVAL       1000
+#define BOUNCE_RANGE        200
 
 KNoTThing thing;
 HX711 scale(A3, A2);
@@ -34,6 +35,17 @@ static float mes, a, b;
 
 int button_value_current, button_value_previous = 0;
 static unsigned long currentMillis, previousMillis = 0;
+
+static int32_t previous_value = 0;
+
+static int32_t remove_noise(int32_t value)
+{
+    if(value > (previous_value + BOUNCE_RANGE) || value < (previous_value - BOUNCE_RANGE)) {
+        previous_value = value;
+    }
+
+    return previous_value;
+}
 
 static float get_weight(byte times)
 {
@@ -69,9 +81,9 @@ static int scale_read(int32_t *val_int, int32_t *multiplier)
 
     /*
      *  MASS units are defined as type INT in the knot_protocol
-     *  Converting from kg to g
+     *  Converting from kg to g and removing noise
      */
-    *val_int = kg*1000;
+    *val_int = remove_noise(kg*1000);
 
     Serial.print("Scale: ");
     Serial.println(*val_int);
