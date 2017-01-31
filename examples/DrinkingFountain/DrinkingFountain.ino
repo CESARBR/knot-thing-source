@@ -14,8 +14,13 @@
 #define SCALE_NAME          "Scale"
 #define BUTTON_PIN          3
 
+#define TIMES_READING       20
+#define TARE_BUTTON_PIN     3
+#define READ_INTERVAL       1000
+
 KNoTThing thing;
 HX711 scale(A3, A2);
+
 /*
  * Constants defined by magic
  */
@@ -28,6 +33,7 @@ static float offset = 0;
 static float mes, a, b;
 
 int button_value_current, button_value_previous = 0;
+static unsigned long currentMillis, previousMillis = 0;
 
 static float get_weight(byte times)
 {
@@ -45,14 +51,21 @@ static int scale_read(int32_t *val_int, int32_t *multiplier)
 
     /* Tares de scale when the button is pressed */
     if ((button_value_current == HIGH) && (button_value_previous == LOW)) {
-        offset = get_weight(20);
+        offset = get_weight(TIMES_READING);
         Serial.print("New offset: ");
         Serial.println(offset);
     }
 
     button_value_previous = button_value_current;
 
-    kg = get_weight(5) - offset;
+    /*
+     * Read only on interval
+     */
+    currentMillis = millis();
+    if(currentMillis - previousMillis >= READ_INTERVAL){
+        previousMillis = currentMillis;
+        kg = get_weight(TIMES_READING) - offset;
+    }
 
     /*
      *  MASS units are defined as type INT in the knot_protocol
