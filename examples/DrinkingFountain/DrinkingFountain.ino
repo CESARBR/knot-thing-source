@@ -9,6 +9,7 @@
 
 #include <KNoTThing.h>
 #include "HX711.h"
+#include <EEPROM.h>
 
 #define SCALE_ID            2
 #define SCALE_NAME          "Scale"
@@ -18,6 +19,8 @@
 #define TARE_BUTTON_PIN     3
 #define READ_INTERVAL       1000
 #define BOUNCE_RANGE        200
+
+#define OFFSET_ADDR         0
 
 KNoTThing thing;
 HX711 scale(A3, A2);
@@ -64,6 +67,10 @@ static int scale_read(int32_t *val_int, int32_t *multiplier)
     /* Tares de scale when the button is pressed */
     if ((button_value_current == HIGH) && (button_value_previous == LOW)) {
         offset = get_weight(TIMES_READING);
+
+        /* Save offset on EEPROM */
+        EEPROM.put(OFFSET_ADDR, offset);
+
         Serial.print("New offset: ");
         Serial.println(offset);
     }
@@ -112,8 +119,13 @@ void setup()
     thing.init("KNoTThing");
     thing.registerIntData(SCALE_NAME, SCALE_ID, KNOT_TYPE_ID_MASS,
                     KNOT_UNIT_MASS_G, scale_read, scale_write);
-    Serial.println("Water Fountain KNoT Demo");
+
+    /* Read offset from EEPROM */
+    EEPROM.get(OFFSET_ADDR, offset);
+
     pinMode(BUTTON_PIN, INPUT);
+
+    Serial.println("Water Fountain KNoT Demo");
 }
 
 void loop()
