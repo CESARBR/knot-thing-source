@@ -113,7 +113,7 @@ void setup()
     thing.registerIntData(SCALE_NAME, SCALE_ID, KNOT_TYPE_ID_MASS,
                     KNOT_UNIT_MASS_G, scale_read, scale_write);
     Serial.println("Water Fountain KNoT Demo");
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
+    pinMode(BUTTON_PIN, INPUT);
 }
 
 void loop()
