@@ -115,12 +115,19 @@ const char *const string_table[] PROGMEM = {startingString,
 void set_nrf24MAC()
 {
 	uint8_t mac_mask = 4;
+	char logString[9];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	memset(&addr, 0, sizeof(struct nrf24_mac));
 	hal_getrandom(addr.address.b + mac_mask,
 					sizeof(struct nrf24_mac) - mac_mask);
 	hal_storage_write_end(HAL_STORAGE_ID_MAC, &addr,
 						sizeof(struct nrf24_mac));
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 }
 static unsigned long time;
 static uint32_t last_timeout;
@@ -130,6 +137,10 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 							events_function event)
 {
 	int len;
+	char logString[9];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	hal_gpio_pin_mode(PIN_LED_STATUS, OUTPUT);
 	hal_gpio_pin_mode(CLEAR_EEPROM_PIN, INPUT_PULLUP);
@@ -143,12 +154,20 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 		set_nrf24MAC();
 	}
 
-	if (hal_comm_init("NRF0", NULL) < 0)
+	if (hal_comm_init("NRF0", NULL) < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
 	sock = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_RAW);
-	if (sock < 0)
+	if (sock < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 	memset(device_name, 0, sizeof(device_name));
 
 	len = MIN(strlen(thing_name), sizeof(device_name) - 1);
@@ -162,6 +181,8 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 	eventf = event;
 	last_timeout = 0;
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -178,6 +199,10 @@ void knot_thing_protocol_exit(void)
  */
 static void led_status(uint8_t status)
 {
+	char logString[9];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	current_status_time = hal_time_ms();
 
@@ -208,6 +233,8 @@ static void led_status(uint8_t status)
 		status_interval = SHORT_INTERVAL;
 	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 }
 
 static int send_register(void)
@@ -215,6 +242,10 @@ static int send_register(void)
 	ssize_t nbytes;
 	knot_msg_register msg;
 	int len;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	memset(&msg, 0, sizeof(msg));
 	len = MIN(sizeof(msg.devName), strlen(device_name));
@@ -224,9 +255,18 @@ static int send_register(void)
 	msg.hdr.payload_len = len;
 
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + len);
-	if (nbytes < 0)
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
+	if (nbytes < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -234,22 +274,39 @@ static int read_register(void)
 {
 	ssize_t nbytes;
 	knot_msg_credential crdntl;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	memset(&crdntl, 0, sizeof(crdntl));
 
 	nbytes = hal_comm_read(cli_sock, &crdntl, sizeof(crdntl));
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 
 	if (nbytes > 0) {
-		if (crdntl.result != KNOT_SUCCESS)
+		if (crdntl.result != KNOT_SUCCESS) {
+			strcpy_P(logString,
+				pgm_read_word(&(string_table[LABEL_ERROR])));
+			hal_log_error("%s", logString);
 			return -1;
+		}
 
 		hal_storage_write_end(HAL_STORAGE_ID_UUID, crdntl.uuid,
 						KNOT_PROTOCOL_UUID_LEN);
 		hal_storage_write_end(HAL_STORAGE_ID_TOKEN, crdntl.token,
 						KNOT_PROTOCOL_TOKEN_LEN);
-	} else if (nbytes < 0)
+	} else if (nbytes < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return nbytes;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -257,6 +314,10 @@ static int send_auth(void)
 {
 	knot_msg_authentication msg;
 	ssize_t nbytes;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	memset(&msg, 0, sizeof(msg));
 
@@ -268,9 +329,18 @@ static int send_auth(void)
 
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
-	if (nbytes < 0)
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
+	if (nbytes < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -278,17 +348,34 @@ static int read_auth(void)
 {
 	knot_msg_result resp;
 	ssize_t nbytes;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	memset(&resp, 0, sizeof(resp));
 
 	nbytes = hal_comm_read(cli_sock, &resp, sizeof(resp));
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 
 	if (nbytes > 0) {
-		if (resp.result != KNOT_SUCCESS)
+		if (resp.result != KNOT_SUCCESS) {
+			strcpy_P(logString,
+				pgm_read_word(&(string_table[LABEL_ERROR])));
+			hal_log_error("%s", logString);
 			return -1;
-	} else if (nbytes < 0)
+		}
+	} else if (nbytes < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return nbytes;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -297,19 +384,36 @@ static int send_schema(void)
 	int err;
 	knot_msg_schema msg;
 	ssize_t nbytes;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	memset(&msg, 0, sizeof(msg));
 	err = schemaf(schema_sensor_id, &msg);
 
-	if (err < 0)
+	if (err < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return err;
+	}
 
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
-	if (nbytes < 0)
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
+	if (nbytes < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		/* TODO create a better error define in the protocol */
 		return KNOT_ERROR_UNKNOWN;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return KNOT_SUCCESS;
 }
 
@@ -318,14 +422,22 @@ static int config(knot_msg_config *config)
 	int err;
 	knot_msg_item resp;
 	ssize_t nbytes;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	err = configf(config->sensor_id, config->values.event_flags,
 						config->values.time_sec,
 						&config->values.lower_limit,
 						&config->values.upper_limit);
 
-	if (err)
+	if (err) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return KNOT_ERROR_UNKNOWN;
+	}
 
 	memset(&resp, 0, sizeof(resp));
 	resp.sensor_id = config->sensor_id;
@@ -334,9 +446,18 @@ static int config(knot_msg_config *config)
 
 	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) +
 							resp.hdr.payload_len);
-	if (nbytes < 0)
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
+	if (nbytes < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -344,8 +465,15 @@ static int set_data(knot_msg_data *data)
 {
 	int err;
 	ssize_t nbytes;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	err = thing_write(data->sensor_id, data);
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 
 	/*
 	 * GW must be aware if the data was succesfully set, so we resend
@@ -353,14 +481,27 @@ static int set_data(knot_msg_data *data)
 	 */
 	data->hdr.type = KNOT_MSG_DATA_RESP;
 	/* TODO: Improve error handling: Sensor not found, invalid data, etc */
-	if (err < 0)
+	if (err < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		data->hdr.type = KNOT_ERROR_UNKNOWN;
+	}
 
 	nbytes = hal_comm_write(cli_sock, data, sizeof(data->hdr) +
 							data->hdr.payload_len);
-	if (nbytes < 0)
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
+	if (nbytes < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return nbytes;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -369,21 +510,41 @@ static int get_data(knot_msg_item *item)
 	int err;
 	knot_msg_data data_resp;
 	ssize_t nbytes;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	memset(&data_resp, 0, sizeof(data_resp));
 	err = thing_read(item->sensor_id, &data_resp);
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 
 	data_resp.hdr.type = KNOT_MSG_DATA;
-	if (err < 0)
+	if (err < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		data_resp.hdr.type = KNOT_ERROR_UNKNOWN;
+	}
 
 	data_resp.sensor_id = item->sensor_id;
 
 	nbytes = hal_comm_write(cli_sock, &data_resp, sizeof(data_resp.hdr) +
 						data_resp.hdr.payload_len);
-	if (nbytes < 0)
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
+	if (nbytes < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -395,12 +556,25 @@ static int data_resp(knot_msg_result *action)
 static int send_data(knot_msg_data *msg_data)
 {
 	int err;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	err = hal_comm_write(cli_sock, msg_data,
 			sizeof(msg_data->hdr) + msg_data->hdr.payload_len);
-	if (err < 0)
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, err, logBytesString);
+	if (err < 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return err;
+	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
 
@@ -413,20 +587,29 @@ static inline int is_uuid(const char *string)
 static int clear_data(void)
 {
 	unsigned long current_time;
+	char logString[9];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	if (!hal_gpio_digital_read(CLEAR_EEPROM_PIN)) {
 		if(time == 0)
 			time = hal_time_ms();
 		current_time = hal_time_ms();
 		if ((current_time - time) >= 5000) {
+			strcpy_P(logString,
+				pgm_read_word(&(string_table[LABEL_ERROR])));
+			hal_log_error("%s", logString);
 			return 1;
 		}
 		return 0;
 	}
 	time = 0;
 	current_time = 0;
-	return 0;
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
+	return 0;
 }
 
 static int8_t mgmt_read(void)
@@ -434,27 +617,51 @@ static int8_t mgmt_read(void)
 	uint8_t buffer[MTU];
 	struct mgmt_nrf24_header *mhdr = (struct mgmt_nrf24_header *) buffer;
 	ssize_t rbytes;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	rbytes = hal_comm_read(sock, buffer, sizeof(buffer));
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
+	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	hal_log_info("%s %d %s", logString, rbytes, logBytesString);
 
 	/* mgmt on bad state? */
-	if (rbytes < 0 && rbytes != -EAGAIN)
+	if (rbytes < 0 && rbytes != -EAGAIN) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
 	/* Nothing to read? */
-	if (rbytes == -EAGAIN)
+	if (rbytes == -EAGAIN) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
 	/* Return/ignore if it is not an event? */
-	if (!(mhdr->opcode & 0x0200))
+	if (!(mhdr->opcode & 0x0200)) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
 	switch (mhdr->opcode) {
 
 	case MGMT_EVT_NRF24_DISCONNECTED:
 		hal_comm_close(cli_sock);
+		strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+		hal_log_info("%s", logString);
 		return 0;
 	}
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_ERROR])));
+	hal_log_error("%s", logString);
 	return -1;
 }
 
@@ -466,6 +673,10 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	ssize_t ilen;
 	knot_msg kreq;
 	knot_msg_data msg_data;
+	char logString[9], logBytesString[6];
+
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
 
 	memset(&msg_data, 0, sizeof(msg_data));
 
@@ -486,6 +697,9 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		 * If uuid/token were found, read the addresses and send
 		 * the auth request, otherwise register request
 		 */
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		led_status(STATE_SETUP);
 		memset(uuid, 0, sizeof(uuid));
 		memset(token, 0, sizeof(token));
@@ -511,6 +725,9 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 * nothing to read so we ignore it, less then 0 an error and 0 success
 	 */
 	case STATE_AUTHENTICATING:
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		led_status(STATE_AUTHENTICATING);
 		retval = read_auth();
 		if (!retval) {
@@ -529,6 +746,9 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		break;
 
 	case STATE_REGISTERING:
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		led_status(STATE_REGISTERING);
 		retval = read_register();
 		if (!retval)
@@ -546,6 +766,9 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 * error occurs, goes to STATE_ERROR.
 	 */
 	case STATE_SCHEMA:
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		led_status(STATE_SCHEMA);
 		retval = send_schema();
 		switch (retval) {
@@ -573,8 +796,15 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 * result was not KNOT_SUCCESS, goes to STATE_ERROR.
 	 */
 	case STATE_SCHEMA_RESP:
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		led_status(STATE_SCHEMA_RESP);
 		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
+		strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
+		strcpy_P(logBytesString,
+			pgm_read_word(&(string_table[LABEL_BYTES])));
+		hal_log_info("%s %d %s", logString, ilen, logBytesString);
 		if (ilen > 0) {
 			if (kreq.hdr.type != KNOT_MSG_SCHEMA_RESP &&
 				kreq.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
@@ -600,9 +830,16 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		break;
 
 	case STATE_ONLINE:
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		led_status(STATE_ONLINE);
 
 		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
+		strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
+		strcpy_P(logBytesString,
+			pgm_read_word(&(string_table[LABEL_BYTES])));
+		hal_log_info("%s %d %s", logString, ilen, logBytesString);
 		if (ilen > 0) {
 			/* There is config or set data */
 			switch (kreq.hdr.type) {
@@ -635,7 +872,9 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		break;
 
 	case STATE_ERROR:
-		//TODO: log error
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		//TODO: close connection if needed
 		//TODO: wait 1s
 		led_status(STATE_ERROR);
@@ -657,20 +896,33 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		return STATE_DISCONNECTED;
 
 	default:
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_error("%s %d", logString, state);
 		//TODO: log invalid state
 		//TODO: close connection if needed
 		return STATE_DISCONNECTED;
 	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return STATE_CONNECTED;
 }
 
 int knot_thing_protocol_run(void)
 {
 	static uint8_t	state = STATE_DISCONNECTED;
+	char logString[9];
 
-	if (enable_run == 0)
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
+	hal_log_info("%s", logString);
+
+	if (enable_run == 0) {
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_ERROR])));
+		hal_log_error("%s", logString);
 		return -1;
+	}
 
 	/*
 	 * Verifies if the button for eeprom clear is pressed for more than 5s
@@ -685,10 +937,17 @@ int knot_thing_protocol_run(void)
 	/* Network message handling state machine */
 	switch (state) {
 	case STATE_DISCONNECTED:
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		/* Internally listen starts broadcasting presence*/
 		led_status(STATE_DISCONNECTED);
-		if (hal_comm_listen(sock) < 0)
+		if (hal_comm_listen(sock) < 0) {
+			strcpy_P(logString,
+				pgm_read_word(&(string_table[LABEL_STATE])));
+			hal_log_info("%s", logString);
 			break;
+		}
 
 		state = STATE_CONNECTING;
 		break;
@@ -698,6 +957,9 @@ int knot_thing_protocol_run(void)
 		 * Try to accept GW connection request. EAGAIN means keep
 		 * waiting, less then 0 means error and greater then 0 success
 		 */
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		led_status(STATE_CONNECTING);
 		cli_sock = hal_comm_accept(sock, &(addr.address.uint64));
 		if (cli_sock == -EAGAIN)
@@ -710,15 +972,23 @@ int knot_thing_protocol_run(void)
 		break;
 
 	case STATE_CONNECTED:
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_info("%s %d", logString, state);
 		state = knot_thing_protocol_connected(false);
 		break;
 
 	default:
 		/* TODO: log invalid state */
 		/* TODO: close connection if needed */
+		strcpy_P(logString,
+			pgm_read_word(&(string_table[LABEL_STATE])));
+		hal_log_error("%s %d", logString, state);
 		state = STATE_DISCONNECTED;
 		break;
 	}
 
+	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_DONE])));
+	hal_log_info("%s", logString);
 	return 0;
 }
