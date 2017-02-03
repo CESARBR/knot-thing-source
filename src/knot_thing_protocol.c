@@ -23,6 +23,7 @@
 #include "include/comm.h"
 #include "include/gpio.h"
 #include "include/time.h"
+#include "include/avr_log.h"
 
 /*KNoT client storage mapping */
 #define KNOT_UUID_FLAG_ADDR		0
@@ -60,6 +61,17 @@
 /* Retransmission timeout in ms */
 #define RETRANSMISSION_TIMEOUT				20000
 
+enum APPLICATION_LABELS {
+	LABEL_STARTING,
+	LABEL_DONE,
+	LABEL_ERROR,
+	LABEL_SENT,
+	LABEL_READ,
+	LABEL_BYTES,
+	LABEL_STATE,
+	LABEL_MAX
+};
+
 static uint8_t enable_run = 0, schema_sensor_id = 0;
 static char uuid[KNOT_PROTOCOL_UUID_LEN + 1];
 static char token[KNOT_PROTOCOL_TOKEN_LEN + 1];
@@ -79,6 +91,23 @@ static uint32_t current_status_time, previous_status_time = 0;
 static uint8_t nblink, led_state, previous_led_state = LOW;
 static uint16_t status_interval;
 
+const char startingString[] PROGMEM = { "Starting" };
+const char doneString[] PROGMEM = { "Done" };
+const char errorString[] PROGMEM = { "Error" };
+const char sentString[] PROGMEM = { "Sent" };
+const char readString[] PROGMEM = { "Read" };
+const char bytesString[] PROGMEM = { "bytes" };
+const char stateString[] PROGMEM = { "State" };
+
+const char *const string_table[] PROGMEM = {startingString,
+	doneString,
+	errorString,
+	sentString,
+	readString,
+	bytesString,
+	stateString
+};
+
 /*
  * FIXME: Thing address should be received via NFC
  * Mac address must be stored in big endian format
@@ -86,6 +115,7 @@ static uint16_t status_interval;
 void set_nrf24MAC()
 {
 	uint8_t mac_mask = 4;
+
 	memset(&addr, 0, sizeof(struct nrf24_mac));
 	hal_getrandom(addr.address.b + mac_mask,
 					sizeof(struct nrf24_mac) - mac_mask);
