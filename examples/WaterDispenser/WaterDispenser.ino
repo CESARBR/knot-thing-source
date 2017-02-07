@@ -125,7 +125,7 @@ void setup()
 
     pinMode(BUTTON_PIN, INPUT);
 
-    Serial.println("Water Fountain KNoT Demo");
+    Serial.println("Water Dispenser KNoT Demo");
 }
 
 void loop()
