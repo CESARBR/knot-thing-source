@@ -138,6 +138,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 {
 	int len;
 	char logString[9];
+	char macString[9] = {0};
 
 	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_STARTING])));
 	hal_log_info("%s", logString);
@@ -153,6 +154,8 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 		hal_storage_reset_end();
 		set_nrf24MAC();
 	}
+	nrf24_mac2str(&addr, macString);
+	hal_log_info("My MAC addr is \"%s\"", macString);
 
 	if (hal_comm_init("NRF0", NULL) < 0) {
 		strcpy_P(logString,

@@ -75,7 +75,7 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	$(MKDIR) -p ./$(KNOT_THING_NAME)/src/include
 	$(MKDIR) -p ./$(KNOT_THING_NAME)/examples
 
-	#Filling whith configuraiton files for Arduino IDE
+	#Filling with configuration files for Arduino IDE
 	# TODO: Create keywords.txt file to KNoT Thing
 	# TODO: Amend keywords of the HAL libs, protocol and thing
 	$(CP) -r $(KNOT_THING_FILES)/library.properties ./$(KNOT_THING_NAME)
