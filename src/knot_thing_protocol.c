@@ -127,7 +127,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 {
 	int len;
 	char logString[9];
-	char macString[9] = {0};
+	char macString[25] = {0};
 
 	hal_gpio_pin_mode(PIN_LED_STATUS, OUTPUT);
 	hal_gpio_pin_mode(CLEAR_EEPROM_PIN, INPUT_PULLUP);
@@ -233,7 +233,6 @@ static int send_register(void)
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + len);
 	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
 	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 	if (nbytes < 0) {
 		strcpy_P(logString,
 			pgm_read_word(&(string_table[LABEL_ERROR])));
@@ -253,9 +252,6 @@ static int read_register(void)
 	memset(&crdntl, 0, sizeof(crdntl));
 
 	nbytes = hal_comm_read(cli_sock, &crdntl, sizeof(crdntl));
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 
 	if (nbytes > 0) {
 		if (crdntl.result != KNOT_SUCCESS) {
@@ -295,9 +291,6 @@ static int send_auth(void)
 
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 	if (nbytes < 0) {
 		strcpy_P(logString,
 			pgm_read_word(&(string_table[LABEL_ERROR])));
@@ -317,9 +310,6 @@ static int read_auth(void)
 	memset(&resp, 0, sizeof(resp));
 
 	nbytes = hal_comm_read(cli_sock, &resp, sizeof(resp));
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 
 	if (nbytes > 0) {
 		if (resp.result != KNOT_SUCCESS) {
@@ -357,9 +347,6 @@ static int send_schema(void)
 
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 	if (nbytes < 0) {
 		strcpy_P(logString,
 			pgm_read_word(&(string_table[LABEL_ERROR])));
@@ -397,9 +384,6 @@ static int config(knot_msg_config *config)
 
 	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) +
 							resp.hdr.payload_len);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 	if (nbytes < 0) {
 		strcpy_P(logString,
 			pgm_read_word(&(string_table[LABEL_ERROR])));
@@ -417,9 +401,6 @@ static int set_data(knot_msg_data *data)
 	char logString[9], logBytesString[6];
 
 	err = thing_write(data->sensor_id, data);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 
 	/*
 	 * GW must be aware if the data was succesfully set, so we resend
@@ -436,9 +417,6 @@ static int set_data(knot_msg_data *data)
 
 	nbytes = hal_comm_write(cli_sock, data, sizeof(data->hdr) +
 							data->hdr.payload_len);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 	if (nbytes < 0) {
 		strcpy_P(logString,
 			pgm_read_word(&(string_table[LABEL_ERROR])));
@@ -458,9 +436,6 @@ static int get_data(knot_msg_item *item)
 
 	memset(&data_resp, 0, sizeof(data_resp));
 	err = thing_read(item->sensor_id, &data_resp);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 
 	data_resp.hdr.type = KNOT_MSG_DATA;
 	if (err < 0) {
@@ -474,9 +449,6 @@ static int get_data(knot_msg_item *item)
 
 	nbytes = hal_comm_write(cli_sock, &data_resp, sizeof(data_resp.hdr) +
 						data_resp.hdr.payload_len);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, nbytes, logBytesString);
 	if (nbytes < 0) {
 		strcpy_P(logString,
 			pgm_read_word(&(string_table[LABEL_ERROR])));
@@ -499,9 +471,6 @@ static int send_data(knot_msg_data *msg_data)
 
 	err = hal_comm_write(cli_sock, msg_data,
 			sizeof(msg_data->hdr) + msg_data->hdr.payload_len);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, err, logBytesString);
 	if (err < 0) {
 		strcpy_P(logString,
 			pgm_read_word(&(string_table[LABEL_ERROR])));
@@ -549,9 +518,6 @@ static int8_t mgmt_read(void)
 	char logString[9], logBytesString[6];
 
 	rbytes = hal_comm_read(sock, buffer, sizeof(buffer));
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_READ])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
-	hal_log_info("%s %d %s", logString, rbytes, logBytesString);
 
 	/* mgmt on bad state? */
 	if (rbytes < 0 && rbytes != -EAGAIN) {
