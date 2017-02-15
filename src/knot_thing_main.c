@@ -164,8 +164,8 @@ int8_t knot_thing_register_data_item(uint8_t id, const char *name,
 }
 
 int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
-						knot_value_types *lower_limit,
-						knot_value_types *upper_limit)
+							knot_value_types *lower,
+							knot_value_types *upper)
 {
 	/*FIXME: Check if config is valid */
 	if ((id >= KNOT_THING_DATA_MAX) || item_is_unregistered(id) == 0)
@@ -174,20 +174,21 @@ int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
 	data_items[id].config.event_flags = evflags;
 	data_items[id].config.time_sec = time_sec;
 
-	if (lower_limit != NULL) {
-		/* As "lower_limit" is a union, we need just to set the "biggest" member */
-		data_items[id].config.lower_limit.val_f.multiplier	= lower_limit->val_f.multiplier;
-		data_items[id].config.lower_limit.val_f.value_int	= lower_limit->val_f.value_int;
-		data_items[id].config.lower_limit.val_f.value_dec	= lower_limit->val_f.value_dec;
-	}
+	/*
+	 * "lower/upper limit" is a union, we need
+	 * just to set the "biggest" member.
+	 */
 
-	if (upper_limit != NULL) {
-		/* As "upper_limit" is a union, we need just to set the "biggest" member */
-		data_items[id].config.upper_limit.val_f.multiplier	= upper_limit->val_f.multiplier;
-		data_items[id].config.upper_limit.val_f.value_int	= upper_limit->val_f.value_int;
-		data_items[id].config.upper_limit.val_f.value_dec	= upper_limit->val_f.value_dec;
-	}
+	if (lower)
+		memcpy(&(data_items[id].config.lower_limit), lower,
+							sizeof(*lower));
+
+	if (upper)
+		memcpy(&(data_items[id].config.upper_limit), upper,
+							sizeof(*upper));
+
 	// TODO: store flags and limits on persistent storage
+
 	return 0;
 }
 
