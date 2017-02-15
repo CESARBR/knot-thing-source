@@ -82,7 +82,7 @@ static void reset_data_items(void)
 	}
 }
 
-int data_function_is_valid(knot_data_functions *func)
+static int data_function_is_valid(knot_data_functions *func)
 {
 	if (func == NULL)
 		return -1;
@@ -93,7 +93,7 @@ int data_function_is_valid(knot_data_functions *func)
 	return 0;
 }
 
-uint8_t item_is_unregistered(uint8_t sensor_id)
+static uint8_t item_is_unregistered(uint8_t sensor_id)
 {
 	return (!(data_items[sensor_id].config.event_flags & KNOT_EVT_FLAG_UNREGISTERED));
 }
