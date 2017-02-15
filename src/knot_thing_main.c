@@ -21,8 +21,7 @@
 
 #define KNOT_THING_EMPTY_ITEM		"EMPTY ITEM"
 
-/* Keeps track of max data_items index were there is a sensor/actuator stored */
-static uint8_t max_sensor_id;
+static uint8_t last_id; /* Last registered id */
 static uint8_t evt_sensor_id;
 
 /* Control the upper lower mensage flow */
@@ -52,7 +51,7 @@ static void reset_data_items(void)
 	struct _data_items *pdata = data_items;
 	int8_t count;
 
-	max_sensor_id = 0;
+	last_id = 0;
 	evt_sensor_id = 0;
 
 	for (count = 0; count < KNOT_THING_DATA_MAX; ++count, ++pdata) {
@@ -158,8 +157,8 @@ int8_t knot_thing_register_data_item(uint8_t id, const char *name,
 	data_items[id].functions.int_f.read			= func->int_f.read;
 	data_items[id].functions.int_f.write			= func->int_f.write;
 
-	if (id > max_sensor_id)
-		max_sensor_id = id;
+	if (id > last_id)
+		last_id = id;
 
 	return 0;
 }
@@ -223,7 +222,7 @@ int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
 	 * Every time a data item is registered we must update the max
 	 * number of sensor_id so we know when schema ends;
 	 */
-	if (i == max_sensor_id)
+	if (i == last_id)
 		msg->hdr.type = KNOT_MSG_SCHEMA_END;
 
 	return KNOT_SUCCESS;
@@ -466,7 +465,7 @@ static int verify_events(knot_msg_data *data)
 	data->sensor_id = evt_sensor_id;
 	evt_sensor_id++;
 
-	if (evt_sensor_id > max_sensor_id)
+	if (evt_sensor_id > last_id)
 		evt_sensor_id = 0;
 
 	// Nothing changed
