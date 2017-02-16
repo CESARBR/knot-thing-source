@@ -354,7 +354,7 @@ static int verify_events(knot_msg_data *data)
 {
 	uint8_t comparison = 0;
 	/* Current time in miliseconds to verify sensor timeout */
-	uint32_t current_time = hal_time_ms();
+	uint32_t current_time;
 
 	/*
 	 * For all registered data items: verify if value
@@ -454,6 +454,7 @@ static int verify_events(knot_msg_data *data)
 	 * It is checked if the data is in time to be updated (time overflow).
 	 * If yes, the last timeout value and the comparison variable are updated with the time flag.
 	 */
+	current_time = hal_time_ms();
 	if ((current_time - data_items[evt_sensor_id].last_timeout) >=
 		(uint32_t) data_items[evt_sensor_id].config.time_sec * 1000) {
 		data_items[evt_sensor_id].last_timeout = current_time;
