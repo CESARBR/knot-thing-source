@@ -322,7 +322,7 @@ static int data_item_write(uint8_t id, knot_msg_data *data)
 					&data->payload.values.val_b);
 		break;
 	case KNOT_VALUE_TYPE_INT:
-		if (data_items[id].functions.int_f.read == NULL)
+		if (data_items[id].functions.int_f.write == NULL)
 			return -1;
 
 		ret_val = data_items[id].functions.int_f.write(
