@@ -375,7 +375,8 @@ static int verify_events(knot_msg_data *data)
 	}
 
 	/* Value did not change or error: return -1, 0 means send data */
-	if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_RAW) {
+	switch (data_items[evt_sensor_id].value_type) {
+	case KNOT_VALUE_TYPE_RAW:
 
 		if (data_items[evt_sensor_id].last_value_raw == NULL)
 			return -1;
@@ -388,14 +389,14 @@ static int verify_events(knot_msg_data *data)
 
 		memcpy(data_items[evt_sensor_id].last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE);
 		comparison = 1;
-
-	} else if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_BOOL) {
+		break;
+	case KNOT_VALUE_TYPE_BOOL:
 		if (data->payload.values.val_b != data_items[evt_sensor_id].last_data.val_b) {
 			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
 			data_items[evt_sensor_id].last_data.val_b = data->payload.values.val_b;
 		}
-
-	} else if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_INT) {
+		break;
+	case KNOT_VALUE_TYPE_INT:
 		// TODO: add multiplier to comparison
 		// TODO: bouncing between lower/upper and band. (add timer or threshold)
 		if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.lower_limit.val_i.value && lower_flag[evt_sensor_id] == 0) {
@@ -418,7 +419,8 @@ static int verify_events(knot_msg_data *data)
 
 		data_items[evt_sensor_id].last_data.val_i.value = data->payload.values.val_i.value;
 		data_items[evt_sensor_id].last_data.val_i.multiplier = data->payload.values.val_i.multiplier;
-	} else if (data_items[evt_sensor_id].value_type == KNOT_VALUE_TYPE_FLOAT) {
+		break;
+	case KNOT_VALUE_TYPE_FLOAT:
 		// TODO: add multiplier and decimal part to comparison
 		// TODO: bouncing between lower/upper and band. (add timer or threshold)
 		if (data->payload.values.val_f.value_int < data_items[evt_sensor_id].config.lower_limit.val_f.value_int && lower_flag[evt_sensor_id] == 0) {
@@ -441,7 +443,8 @@ static int verify_events(knot_msg_data *data)
 		data_items[evt_sensor_id].last_data.val_f.value_int = data->payload.values.val_f.value_int;
 		data_items[evt_sensor_id].last_data.val_f.value_dec = data->payload.values.val_f.value_dec;
 		data_items[evt_sensor_id].last_data.val_f.multiplier = data->payload.values.val_f.multiplier;
-	} else {
+		break;
+	default:
 		// This data item is not registered with a valid value type
 		evt_sensor_id++;
 		return -1;
