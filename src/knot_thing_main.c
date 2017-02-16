@@ -299,6 +299,7 @@ static int data_item_read(uint8_t id, knot_msg_data *data)
 
 static int data_item_write(uint8_t id, knot_msg_data *data)
 {
+	int ret_val;
 	uint8_t len;
 
 	if ((id >= KNOT_THING_DATA_MAX) || item_is_unregistered(id) == 0)
@@ -310,39 +311,39 @@ static int data_item_write(uint8_t id, knot_msg_data *data)
 		if (data_items[id].functions.raw_f.write == NULL)
 			return -1;
 
-		if (data_items[id].functions.raw_f.write(data->payload.raw, &len) < 0)
-			return -1;
-
+		ret_val = data_items[id].functions.raw_f.write(
+						data->payload.raw, &len);
 		break;
 	case KNOT_VALUE_TYPE_BOOL:
 		if (data_items[id].functions.bool_f.write == NULL)
 			return -1;
 
-		if (data_items[id].functions.bool_f.write(&data->payload.values.val_b) < 0)
-			return -1;
+		ret_val = data_items[id].functions.bool_f.write(
+					&data->payload.values.val_b);
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		if (data_items[id].functions.int_f.read == NULL)
 			return -1;
 
-		if (data_items[id].functions.int_f.write(&data->payload.values.val_i.value,
-								&data->payload.values.val_i.multiplier) < 0)
-			return -1;
+		ret_val = data_items[id].functions.int_f.write(
+					&data->payload.values.val_i.value,
+					&data->payload.values.val_i.multiplier);
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		if (data_items[id].functions.float_f.write == NULL)
 			return -1;
 
-		if (data_items[id].functions.float_f.write(&data->payload.values.val_f.value_int,
-								&data->payload.values.val_f.value_dec,
-								&data->payload.values.val_f.multiplier) < 0)
-			return -1;
+		ret_val = data_items[id].functions.float_f.write(
+					&data->payload.values.val_f.value_int,
+					&data->payload.values.val_f.value_dec,
+					&data->payload.values.val_f.multiplier);
 		break;
 	default:
-		return -1;
+		ret_val = -1;
+		break;
 	}
 
-	return 0;
+	return ret_val;
 }
 
 int8_t knot_thing_run(void)
