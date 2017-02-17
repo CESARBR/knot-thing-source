@@ -144,7 +144,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 	hal_log_info("My MAC addr is \"%s\"", macString);
 
 	if (hal_comm_init("NRF0", NULL) < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -152,7 +152,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 
 	sock = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_RAW);
 	if (sock < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -231,10 +231,12 @@ static int send_register(void)
 	msg.hdr.payload_len = len;
 
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + len);
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_SENT])));
-	strcpy_P(logBytesString, pgm_read_word(&(string_table[LABEL_BYTES])));
+	strcpy_P(logString,
+		(const char *)pgm_read_word(&(string_table[LABEL_SENT])));
+	strcpy_P(logBytesString,
+		(const char *)pgm_read_word(&(string_table[LABEL_BYTES])));
 	if (nbytes < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -255,7 +257,7 @@ static int read_register(void)
 
 	if (nbytes > 0) {
 		if (crdntl.result != KNOT_SUCCESS) {
-			strcpy_P(logString,
+			strcpy_P(logString, (const char *)
 				pgm_read_word(&(string_table[LABEL_ERROR])));
 			hal_log_error("%s", logString);
 			return -1;
@@ -266,7 +268,7 @@ static int read_register(void)
 		hal_storage_write_end(HAL_STORAGE_ID_TOKEN, crdntl.token,
 						KNOT_PROTOCOL_TOKEN_LEN);
 	} else if (nbytes < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return nbytes;
@@ -292,7 +294,7 @@ static int send_auth(void)
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
 	if (nbytes < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -313,13 +315,13 @@ static int read_auth(void)
 
 	if (nbytes > 0) {
 		if (resp.result != KNOT_SUCCESS) {
-			strcpy_P(logString,
+			strcpy_P(logString, (const char *)
 				pgm_read_word(&(string_table[LABEL_ERROR])));
 			hal_log_error("%s", logString);
 			return -1;
 		}
 	} else if (nbytes < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return nbytes;
@@ -339,7 +341,7 @@ static int send_schema(void)
 	err = schemaf(schema_sensor_id, &msg);
 
 	if (err < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return err;
@@ -348,7 +350,7 @@ static int send_schema(void)
 	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
 							msg.hdr.payload_len);
 	if (nbytes < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		/* TODO create a better error define in the protocol */
@@ -371,7 +373,7 @@ static int config(knot_msg_config *config)
 						&config->values.upper_limit);
 
 	if (err) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return KNOT_ERROR_UNKNOWN;
@@ -385,7 +387,7 @@ static int config(knot_msg_config *config)
 	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) +
 							resp.hdr.payload_len);
 	if (nbytes < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -409,7 +411,7 @@ static int set_data(knot_msg_data *data)
 	data->hdr.type = KNOT_MSG_DATA_RESP;
 	/* TODO: Improve error handling: Sensor not found, invalid data, etc */
 	if (err < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		data->hdr.type = KNOT_ERROR_UNKNOWN;
@@ -418,7 +420,7 @@ static int set_data(knot_msg_data *data)
 	nbytes = hal_comm_write(cli_sock, data, sizeof(data->hdr) +
 							data->hdr.payload_len);
 	if (nbytes < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return nbytes;
@@ -439,7 +441,7 @@ static int get_data(knot_msg_item *item)
 
 	data_resp.hdr.type = KNOT_MSG_DATA;
 	if (err < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		data_resp.hdr.type = KNOT_ERROR_UNKNOWN;
@@ -450,7 +452,7 @@ static int get_data(knot_msg_item *item)
 	nbytes = hal_comm_write(cli_sock, &data_resp, sizeof(data_resp.hdr) +
 						data_resp.hdr.payload_len);
 	if (nbytes < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -472,7 +474,7 @@ static int send_data(knot_msg_data *msg_data)
 	err = hal_comm_write(cli_sock, msg_data,
 			sizeof(msg_data->hdr) + msg_data->hdr.payload_len);
 	if (err < 0) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return err;
@@ -497,7 +499,7 @@ static int clear_data(void)
 			time = hal_time_ms();
 		current_time = hal_time_ms();
 		if ((current_time - time) >= 5000) {
-			strcpy_P(logString,
+			strcpy_P(logString, (const char *)
 				pgm_read_word(&(string_table[LABEL_ERROR])));
 			hal_log_error("%s", logString);
 			return 1;
@@ -521,7 +523,7 @@ static int8_t mgmt_read(void)
 
 	/* mgmt on bad state? */
 	if (rbytes < 0 && rbytes != -EAGAIN) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -529,7 +531,7 @@ static int8_t mgmt_read(void)
 
 	/* Nothing to read? */
 	if (rbytes == -EAGAIN) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -537,7 +539,7 @@ static int8_t mgmt_read(void)
 
 	/* Return/ignore if it is not an event? */
 	if (!(mhdr->opcode & 0x0200)) {
-		strcpy_P(logString,
+		strcpy_P(logString, (const char *)
 			pgm_read_word(&(string_table[LABEL_ERROR])));
 		hal_log_error("%s", logString);
 		return -1;
@@ -550,7 +552,8 @@ static int8_t mgmt_read(void)
 		return 0;
 	}
 
-	strcpy_P(logString, pgm_read_word(&(string_table[LABEL_ERROR])));
+	strcpy_P(logString,
+		(const char *)pgm_read_word(&(string_table[LABEL_ERROR])));
 	hal_log_error("%s", logString);
 	return -1;
 }
