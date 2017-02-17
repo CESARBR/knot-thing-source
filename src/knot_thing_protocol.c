@@ -249,7 +249,7 @@ static int read_register(void)
 {
 	ssize_t nbytes;
 	knot_msg_credential crdntl;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	memset(&crdntl, 0, sizeof(crdntl));
 
@@ -281,7 +281,7 @@ static int send_auth(void)
 {
 	knot_msg_authentication msg;
 	ssize_t nbytes;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	memset(&msg, 0, sizeof(msg));
 
@@ -307,7 +307,7 @@ static int read_auth(void)
 {
 	knot_msg_result resp;
 	ssize_t nbytes;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	memset(&resp, 0, sizeof(resp));
 
@@ -335,7 +335,7 @@ static int send_schema(void)
 	int err;
 	knot_msg_schema msg;
 	ssize_t nbytes;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	memset(&msg, 0, sizeof(msg));
 	err = schemaf(schema_sensor_id, &msg);
@@ -365,7 +365,7 @@ static int config(knot_msg_config *config)
 	int err;
 	knot_msg_item resp;
 	ssize_t nbytes;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	err = configf(config->sensor_id, config->values.event_flags,
 						config->values.time_sec,
@@ -400,7 +400,7 @@ static int set_data(knot_msg_data *data)
 {
 	int err;
 	ssize_t nbytes;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	err = thing_write(data->sensor_id, data);
 
@@ -434,7 +434,7 @@ static int get_data(knot_msg_item *item)
 	int err;
 	knot_msg_data data_resp;
 	ssize_t nbytes;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	memset(&data_resp, 0, sizeof(data_resp));
 	err = thing_read(item->sensor_id, &data_resp);
@@ -469,7 +469,7 @@ static int data_resp(knot_msg_result *action)
 static int send_data(knot_msg_data *msg_data)
 {
 	int err;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	err = hal_comm_write(cli_sock, msg_data,
 			sizeof(msg_data->hdr) + msg_data->hdr.payload_len);
@@ -517,7 +517,7 @@ static int8_t mgmt_read(void)
 	uint8_t buffer[MTU];
 	struct mgmt_nrf24_header *mhdr = (struct mgmt_nrf24_header *) buffer;
 	ssize_t rbytes;
-	char logString[9], logBytesString[6];
+	char logString[9];
 
 	rbytes = hal_comm_read(sock, buffer, sizeof(buffer));
 
