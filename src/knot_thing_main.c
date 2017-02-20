@@ -229,10 +229,6 @@ static int data_item_read(uint8_t id, knot_msg_data *data)
 	int32_t int32_val = 0, multiplier = 0;
 	uint32_t uint32_val = 0;
 
-	/*
-	* TODO: This verification is alredy done at verify_events, maybe
-	* doesn`t need to do it again.
-	*/
 	if ((id >= KNOT_THING_DATA_MAX) || item_is_unregistered(id) == 0)
 		return -1;
 
