@@ -201,13 +201,7 @@ int knot_thing_create_schema(uint8_t i, knot_msg_schema *msg)
 	msg->hdr.type = KNOT_MSG_SCHEMA;
 
 	if ((i >= KNOT_THING_DATA_MAX) || item_is_unregistered(i) == 0)
-		/*
-		 * FIXME
-		 * Check if this is the best error to be used from the defines
-		 * in the knot_protocol. Replace or create a better one if
-		 * needed.
-		 */
-		return KNOT_SCHEMA_EMPTY;
+		return KNOT_INVALID_DEVICE;
 
 	msg->sensor_id = i;
 	entry.values.value_type = data_items[i].value_type;
