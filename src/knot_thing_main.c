@@ -389,7 +389,6 @@ static int verify_events(knot_msg_data *data)
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		// TODO: add multiplier to comparison
-		// TODO: bouncing between lower/upper and band. (add timer or threshold)
 		if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.lower_limit.val_i.value && lower_flag[evt_sensor_id] == 0) {
 			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
 			upper_flag[evt_sensor_id] = 0;
@@ -413,7 +412,6 @@ static int verify_events(knot_msg_data *data)
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		// TODO: add multiplier and decimal part to comparison
-		// TODO: bouncing between lower/upper and band. (add timer or threshold)
 		if (data->payload.values.val_f.value_int < data_items[evt_sensor_id].config.lower_limit.val_f.value_int && lower_flag[evt_sensor_id] == 0) {
 			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
 			upper_flag[evt_sensor_id] = 0;
