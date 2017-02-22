@@ -71,8 +71,6 @@ enum APPLICATION_LABELS {
 };
 
 static uint8_t enable_run = 0, schema_sensor_id = 0;
-static char uuid[KNOT_PROTOCOL_UUID_LEN + 1];
-static char token[KNOT_PROTOCOL_TOKEN_LEN + 1];
 static char device_name[KNOT_PROTOCOL_DEVICE_NAME_LEN];
 static schema_function schemaf;
 static data_function thing_read;
@@ -283,7 +281,7 @@ static int read_register(void)
 	return 0;
 }
 
-static int send_auth(void)
+static int send_auth(const char *uuid, const char *token)
 {
 	knot_msg_authentication msg;
 	ssize_t nbytes;
@@ -566,6 +564,8 @@ static int8_t mgmt_read(void)
 
 static uint8_t knot_thing_protocol_connected(bool breset)
 {
+	char uuid[KNOT_PROTOCOL_UUID_LEN + 1];
+	char token[KNOT_PROTOCOL_TOKEN_LEN + 1];
 	static uint8_t	state = STATE_SETUP,
 			previous_state = STATE_DISCONNECTED;
 	int8_t retval;
@@ -602,7 +602,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 
 		if (is_uuid(uuid)) {
 			state = STATE_AUTHENTICATING;
-			if (send_auth() < 0)
+			if (send_auth(uuid, token) < 0)
 				state = STATE_ERROR;
 		} else {
 			state = STATE_REGISTERING;
