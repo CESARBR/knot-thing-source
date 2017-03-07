@@ -16,10 +16,12 @@
 #include "knot_thing_config.h"
 #include "knot_types.h"
 #include "knot_thing_main.h"
+#include <avr/pgmspace.h>
 
 // TODO: normalize all returning error codes
 
-#define KNOT_THING_EMPTY_ITEM		"EMPTY ITEM"
+
+const char KNOT_THING_EMPTY_ITEM[] PROGMEM = { "EMPTY ITEM" };
 
 static uint8_t last_id; /* Last registered id */
 static uint8_t evt_sensor_id;
@@ -55,7 +57,7 @@ static void reset_data_items(void)
 	evt_sensor_id = 0;
 
 	for (count = 0; count < KNOT_THING_DATA_MAX; ++count, ++pdata) {
-		pdata->name					= KNOT_THING_EMPTY_ITEM;
+		pdata->name					= (const char *)pgm_read_word(KNOT_THING_EMPTY_ITEM);
 		pdata->type_id					= KNOT_TYPE_ID_INVALID;
 		pdata->unit					= KNOT_UNIT_NOT_APPLICABLE;
 		pdata->value_type				= KNOT_VALUE_TYPE_INVALID;
@@ -289,7 +291,7 @@ static int data_item_read(uint8_t id, knot_msg_data *data)
 
 static int data_item_write(uint8_t id, knot_msg_data *data)
 {
-	int ret_val = -1;
+	int8_t ret_val = -1;
 	uint8_t len;
 
 	if ((id >= KNOT_THING_DATA_MAX) || item_is_unregistered(id) == 0)

@@ -89,6 +89,8 @@ static uint32_t current_status_time, previous_status_time = 0;
 static uint8_t nblink, led_state, previous_led_state = LOW;
 static uint16_t status_interval;
 
+const char macStringProg[] PROGMEM = { "My MAC addr is:" };
+
 const char errorString[] PROGMEM = { "Error" };
 const char sentString[] PROGMEM = { "Sent" };
 const char readString[] PROGMEM = { "Read" };
@@ -125,8 +127,8 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 	data_function write, schema_function schema, config_function config,
 							events_function event)
 {
-	int len;
-	char logString[9];
+	uint8_t len;
+	char logString[16];
 	char macString[25] = {0};
 
 	hal_gpio_pin_mode(PIN_LED_STATUS, OUTPUT);
@@ -141,7 +143,11 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 		set_nrf24MAC();
 	}
 	nrf24_mac2str(&addr, macString);
-	hal_log_info("My MAC addr is \"%s\"", macString);
+
+	strcpy_P(logString, (const char *)
+			pgm_read_word(macStringProg));
+	hal_log_error("%s", logString);
+	hal_log_info("\t\"%s\"", macString);
 
 	if (hal_comm_init("NRF0", NULL) < 0) {
 		strcpy_P(logString, (const char *)
@@ -220,8 +226,8 @@ static int send_register(void)
 {
 	ssize_t nbytes;
 	knot_msg_register msg;
-	int len;
-	char logString[9], logBytesString[6];
+	uint8_t len;
+	char logString[6], logBytesString[6];
 
 	memset(&msg, 0, sizeof(msg));
 	len = MIN(sizeof(msg.devName), strlen(device_name));
@@ -249,7 +255,7 @@ static int read_register(void)
 {
 	ssize_t nbytes;
 	knot_msg_credential crdntl;
-	char logString[9];
+	char logString[6];
 
 	memset(&crdntl, 0, sizeof(crdntl));
 
@@ -281,7 +287,7 @@ static int send_auth(void)
 {
 	knot_msg_authentication msg;
 	ssize_t nbytes;
-	char logString[9];
+	char logString[6];
 
 	memset(&msg, 0, sizeof(msg));
 
@@ -307,7 +313,7 @@ static int read_auth(void)
 {
 	knot_msg_result resp;
 	ssize_t nbytes;
-	char logString[9];
+	char logString[6];
 
 	memset(&resp, 0, sizeof(resp));
 
@@ -332,10 +338,10 @@ static int read_auth(void)
 
 static int send_schema(void)
 {
-	int err;
+	int8_t err;
 	knot_msg_schema msg;
 	ssize_t nbytes;
-	char logString[9];
+	char logString[6];
 
 	memset(&msg, 0, sizeof(msg));
 	err = schemaf(schema_sensor_id, &msg);
@@ -362,10 +368,10 @@ static int send_schema(void)
 
 static int config(knot_msg_config *config)
 {
-	int err;
+	int8_t err;
 	knot_msg_item resp;
 	ssize_t nbytes;
-	char logString[9];
+	char logString[6];
 
 	err = configf(config->sensor_id, config->values.event_flags,
 						config->values.time_sec,
@@ -398,9 +404,9 @@ static int config(knot_msg_config *config)
 
 static int set_data(knot_msg_data *data)
 {
-	int err;
+	int8_t err;
 	ssize_t nbytes;
-	char logString[9];
+	char logString[6];
 
 	err = thing_write(data->sensor_id, data);
 
@@ -431,10 +437,10 @@ static int set_data(knot_msg_data *data)
 
 static int get_data(knot_msg_item *item)
 {
-	int err;
+	int8_t err;
 	knot_msg_data data_resp;
 	ssize_t nbytes;
-	char logString[9];
+	char logString[6];
 
 	memset(&data_resp, 0, sizeof(data_resp));
 	err = thing_read(item->sensor_id, &data_resp);
@@ -468,8 +474,8 @@ static int data_resp(knot_msg_result *action)
 
 static int send_data(knot_msg_data *msg_data)
 {
-	int err;
-	char logString[9];
+	int8_t err;
+	char logString[6];
 
 	err = hal_comm_write(cli_sock, msg_data,
 			sizeof(msg_data->hdr) + msg_data->hdr.payload_len);
@@ -492,7 +498,7 @@ static inline int is_uuid(const char *string)
 static int clear_data(void)
 {
 	unsigned long current_time;
-	char logString[9];
+	char logString[6];
 
 	if (!hal_gpio_digital_read(CLEAR_EEPROM_PIN)) {
 		if(time == 0)
@@ -562,7 +568,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 {
 	static uint8_t	state = STATE_SETUP,
 			previous_state = STATE_DISCONNECTED;
-	int retval;
+	int8_t retval;
 	ssize_t ilen;
 	knot_msg kreq;
 	knot_msg_data msg_data;
