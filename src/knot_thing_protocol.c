@@ -663,6 +663,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 			state = STATE_ERROR;
 			break;
 		case KNOT_SCHEMA_EMPTY:
+		case KNOT_INVALID_DEVICE:
 			state = STATE_SCHEMA;
 			schema_sensor_id++;
 			break;
