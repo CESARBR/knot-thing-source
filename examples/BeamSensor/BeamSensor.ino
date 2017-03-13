@@ -19,14 +19,14 @@
 
 static KNoTThing thing;
 
-static int beam_read_1(int32_t *val, int32_t *multiplier)
+static int beam_read_1(uint8_t *val)
 {
 	*val = digitalRead(BEAM_SENSOR_1_PIN);
 
 	return 0;
 }
 
-static int beam_read_2(int32_t *val, int32_t *multiplier)
+static int beam_read_2(uint8_t *val)
 {
 	*val = digitalRead(BEAM_SENSOR_2_PIN);
 
@@ -40,7 +40,7 @@ void setup()
 	pinMode(BEAM_SENSOR_1_PIN, INPUT);
 	pinMode(BEAM_SENSOR_2_PIN, INPUT);
 
-	thing.init("KNoTThing Beam Sensor Example");
+	thing.init("Beam Sensor");
 
 	thing.registerBoolData(BEAM_SENSOR_1_NAME, BEAM_SENSOR_1_ID,
 			KNOT_TYPE_ID_PRESENCE, KNOT_UNIT_NOT_APPLICABLE,
