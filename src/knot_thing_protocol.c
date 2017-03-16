@@ -83,7 +83,7 @@ static struct nrf24_mac addr;
 static bool schema_flag = false;
 
 /* Led status control variables */
-static uint32_t current_status_time, previous_status_time = 0;
+static uint32_t previous_status_time = 0;
 static uint8_t nblink, led_state, previous_led_state = LOW;
 static uint16_t status_interval;
 
@@ -190,7 +190,7 @@ void knot_thing_protocol_exit(void)
  */
 static void led_status(uint8_t status)
 {
-	current_status_time = hal_time_ms();
+	uint32_t current_status_time = hal_time_ms();
 
 	/*
 	 * If the LED has lit and off twice the state,
