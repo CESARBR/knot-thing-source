@@ -26,17 +26,17 @@ const char KNOT_THING_EMPTY_ITEM[] PROGMEM = { "EMPTY ITEM" };
 static uint8_t last_id; /* Last registered id */
 static uint8_t evt_sensor_id;
 
-/* Control the upper lower mensage flow */
-static uint8_t lower_flag[KNOT_THING_DATA_MAX];
-static uint8_t upper_flag[KNOT_THING_DATA_MAX];
-
-
 static struct _data_items{
 	// schema values
 	uint8_t			value_type;	// KNOT_VALUE_TYPE_* (int, float, bool, raw)
 	uint8_t			unit;		// KNOT_UNIT_*
 	uint16_t		type_id;	// KNOT_TYPE_ID_*
 	const char		*name;		// App defined data item name
+
+	/* Control the upper lower message flow */
+	uint8_t lower_flag;
+	uint8_t upper_flag;
+
 	// data values
 	knot_value_types	last_data;
 	uint8_t			*last_value_raw;
@@ -79,8 +79,8 @@ static void reset_data_items(void)
 		pdata->functions.int_f.read			= NULL;
 		pdata->functions.int_f.write			= NULL;
 
-		lower_flag[count] = 0;
-		upper_flag[count] = 0;
+		pdata->lower_flag = 0;
+		pdata->upper_flag = 0;
 	}
 }
 
@@ -345,6 +345,8 @@ int8_t knot_thing_run(void)
 
 static int verify_events(knot_msg_data *data)
 {
+	struct _data_items *pdata;
+	knot_value_types *last;
 	uint8_t comparison = 0;
 	/* Current time in miliseconds to verify sensor timeout */
 	uint32_t current_time;
@@ -367,73 +369,80 @@ static int verify_events(knot_msg_data *data)
 		return -1;
 	}
 
+	pdata = &data_items[evt_sensor_id];
+	last = &(pdata->last_data);
+
 	/* Value did not change or error: return -1, 0 means send data */
-	switch (data_items[evt_sensor_id].value_type) {
+	switch (pdata->value_type) {
 	case KNOT_VALUE_TYPE_RAW:
 
-		if (data_items[evt_sensor_id].last_value_raw == NULL)
+		if (pdata->last_value_raw == NULL)
 			return -1;
 
 		if (data->hdr.payload_len != KNOT_DATA_RAW_SIZE)
 			return -1;
 
-		if (memcmp(data_items[evt_sensor_id].last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE) == 0)
+		if (memcmp(pdata->last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE) == 0)
 			return -1;
 
-		memcpy(data_items[evt_sensor_id].last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE);
+		memcpy(pdata->last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE);
 		comparison = 1;
 		break;
 	case KNOT_VALUE_TYPE_BOOL:
-		if (data->payload.values.val_b != data_items[evt_sensor_id].last_data.val_b) {
-			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
-			data_items[evt_sensor_id].last_data.val_b = data->payload.values.val_b;
+		if (data->payload.values.val_b != last->val_b) {
+			comparison |= (KNOT_EVT_FLAG_CHANGE & pdata->config.event_flags);
+			last->val_b = data->payload.values.val_b;
 		}
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		// TODO: add multiplier to comparison
-		if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.lower_limit.val_i.value && lower_flag[evt_sensor_id] == 0) {
-			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-			upper_flag[evt_sensor_id] = 0;
-			lower_flag[evt_sensor_id] = 1;
-		} else if (data->payload.values.val_i.value > data_items[evt_sensor_id].config.upper_limit.val_i.value && upper_flag[evt_sensor_id] == 0) {
-			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-			upper_flag[evt_sensor_id] = 1;
-			lower_flag[evt_sensor_id] = 0;
+		if (data->payload.values.val_i.value < pdata->config.lower_limit.val_i.value &&
+						pdata->lower_flag == 0) {
+			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & pdata->config.event_flags);
+			pdata->upper_flag = 0;
+			pdata->lower_flag = 1;
+		} else if (data->payload.values.val_i.value > pdata->config.upper_limit.val_i.value &&
+			   pdata->upper_flag == 0) {
+			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & pdata->config.event_flags);
+			pdata->upper_flag = 1;
+			pdata->lower_flag = 0;
 		} else {
-			if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.upper_limit.val_i.value)
-				upper_flag[evt_sensor_id] = 0;
-			if (data->payload.values.val_i.value > data_items[evt_sensor_id].config.lower_limit.val_i.value)
-				lower_flag[evt_sensor_id] = 0;
+			if (data->payload.values.val_i.value < pdata->config.upper_limit.val_i.value)
+				pdata->upper_flag = 0;
+			if (data->payload.values.val_i.value > pdata->config.lower_limit.val_i.value)
+				pdata->lower_flag = 0;
 		}
 
-		if (data->payload.values.val_i.value != data_items[evt_sensor_id].last_data.val_i.value)
-			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
+		if (data->payload.values.val_i.value != last->val_i.value)
+			comparison |= (KNOT_EVT_FLAG_CHANGE & pdata->config.event_flags);
 
-		data_items[evt_sensor_id].last_data.val_i.value = data->payload.values.val_i.value;
-		data_items[evt_sensor_id].last_data.val_i.multiplier = data->payload.values.val_i.multiplier;
+		last->val_i.value = data->payload.values.val_i.value;
+		last->val_i.multiplier = data->payload.values.val_i.multiplier;
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		// TODO: add multiplier and decimal part to comparison
-		if (data->payload.values.val_f.value_int < data_items[evt_sensor_id].config.lower_limit.val_f.value_int && lower_flag[evt_sensor_id] == 0) {
-			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-			upper_flag[evt_sensor_id] = 0;
-			lower_flag[evt_sensor_id] = 1;
-		} else if (data->payload.values.val_f.value_int > data_items[evt_sensor_id].config.upper_limit.val_f.value_int && upper_flag[evt_sensor_id] == 0) {
-			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-			upper_flag[evt_sensor_id] = 1;
-			lower_flag[evt_sensor_id] = 0;
+		if (data->payload.values.val_f.value_int < pdata->config.lower_limit.val_f.value_int &&
+				pdata->lower_flag == 0) {
+			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & pdata->config.event_flags);
+			pdata->upper_flag = 0;
+			pdata->lower_flag = 1;
+		} else if (data->payload.values.val_f.value_int > pdata->config.upper_limit.val_f.value_int &&
+			   pdata->upper_flag == 0) {
+			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & pdata->config.event_flags);
+			pdata->upper_flag = 1;
+			pdata->lower_flag = 0;
 		} else {
-			if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.upper_limit.val_i.value)
-				upper_flag[evt_sensor_id] = 0;
-			if (data->payload.values.val_i.value > data_items[evt_sensor_id].config.lower_limit.val_i.value)
-				lower_flag[evt_sensor_id] = 0;
+			if (data->payload.values.val_i.value < pdata->config.upper_limit.val_i.value)
+				pdata->upper_flag = 0;
+			if (data->payload.values.val_i.value > pdata->config.lower_limit.val_i.value)
+				pdata->lower_flag = 0;
 		}
-		if (data->payload.values.val_f.value_int != data_items[evt_sensor_id].last_data.val_f.value_int)
-			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
+		if (data->payload.values.val_f.value_int != last->val_f.value_int)
+			comparison |= (KNOT_EVT_FLAG_CHANGE & pdata->config.event_flags);
 
-		data_items[evt_sensor_id].last_data.val_f.value_int = data->payload.values.val_f.value_int;
-		data_items[evt_sensor_id].last_data.val_f.value_dec = data->payload.values.val_f.value_dec;
-		data_items[evt_sensor_id].last_data.val_f.multiplier = data->payload.values.val_f.multiplier;
+		last->val_f.value_int = data->payload.values.val_f.value_int;
+		last->val_f.value_dec = data->payload.values.val_f.value_dec;
+		last->val_f.multiplier = data->payload.values.val_f.multiplier;
 		break;
 	default:
 		// This data item is not registered with a valid value type
@@ -446,10 +455,10 @@ static int verify_events(knot_msg_data *data)
 	 * If yes, the last timeout value and the comparison variable are updated with the time flag.
 	 */
 	current_time = hal_time_ms();
-	if ((current_time - data_items[evt_sensor_id].last_timeout) >=
-		(uint32_t) data_items[evt_sensor_id].config.time_sec * 1000) {
-		data_items[evt_sensor_id].last_timeout = current_time;
-		comparison |= (KNOT_EVT_FLAG_TIME & data_items[evt_sensor_id].config.event_flags);
+	if ((current_time - pdata->last_timeout) >=
+		(uint32_t) pdata->config.time_sec * 1000) {
+		pdata->last_timeout = current_time;
+		comparison |= (KNOT_EVT_FLAG_TIME & pdata->config.event_flags);
 	}
 
 	/*
