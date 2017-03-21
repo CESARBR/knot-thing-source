@@ -244,7 +244,7 @@ static int data_item_read(uint8_t id, knot_msg_data *data)
 
 		len = uint8_val;
 		memcpy(data->payload.raw, uint8_buffer, len);
-		data->hdr.payload_len = len;
+		data->hdr.payload_len = len + sizeof(data->sensor_id);
 		break;
 	case KNOT_VALUE_TYPE_BOOL:
 		if (data_items[id].functions.bool_f.read == NULL)
@@ -255,7 +255,7 @@ static int data_item_read(uint8_t id, knot_msg_data *data)
 
 		len = sizeof(data->payload.values.val_b);
 		data->payload.values.val_b = uint8_val;
-		data->hdr.payload_len = len;
+		data->hdr.payload_len = len + sizeof(data->sensor_id);
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		if (data_items[id].functions.int_f.read == NULL)
@@ -267,7 +267,7 @@ static int data_item_read(uint8_t id, knot_msg_data *data)
 		len = sizeof(data->payload.values.val_i);
 		data->payload.values.val_i.value = int32_val;
 		data->payload.values.val_i.multiplier = multiplier;
-		data->hdr.payload_len = len;
+		data->hdr.payload_len = len + sizeof(data->sensor_id);
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		if (data_items[id].functions.float_f.read == NULL)
@@ -280,7 +280,7 @@ static int data_item_read(uint8_t id, knot_msg_data *data)
 		data->payload.values.val_f.value_int = int32_val;
 		data->payload.values.val_f.value_dec = uint32_val;
 		data->payload.values.val_f.multiplier = multiplier;
-		data->hdr.payload_len = len;
+		data->hdr.payload_len = len + sizeof(data->sensor_id);
 		break;
 	default:
 		return -1;
