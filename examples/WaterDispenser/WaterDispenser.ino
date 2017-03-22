@@ -32,12 +32,11 @@ static float k1 = 8410743;
 static float k2 = 9622553;
 static float ref_w = 62.6;
 
-static float raw_kg,kg;
+static float kg;
 static float offset = 0;
-static float mes, a, b;
 
-int button_value_current, button_value_previous = 0;
-static unsigned long currentMillis, previousMillis = 0;
+int button_value_previous = 0;
+static unsigned long previousMillis = 0;
 
 static int32_t previous_value = 0;
 
@@ -52,6 +51,8 @@ static int32_t remove_noise(int32_t value)
 
 static float get_weight(byte times)
 {
+    float raw_kg, mes, a, b;
+
     mes = scale.get_value(times);
     a = ref_w/(k2 - k1);
     b = (-1)*ref_w*k1/(k2-k1);
@@ -62,7 +63,8 @@ static float get_weight(byte times)
 
 static int scale_read(int32_t *val_int, int32_t *multiplier)
 {
-    button_value_current =  digitalRead(BUTTON_PIN);
+    unsigned long currentMillis;
+    int button_value_current =  digitalRead(BUTTON_PIN);
 
     /* Tares de scale when the button is pressed */
     if ((button_value_current == HIGH) && (button_value_previous == LOW)) {
@@ -111,7 +113,7 @@ static int scale_write(int32_t *val_int, int32_t *multiplier)
     return 0;
 }
 
-void setup()
+void setup(void)
 {
     Serial.begin(9600);
     scale.power_up();
@@ -128,7 +130,7 @@ void setup()
     Serial.println("Water Dispenser KNoT Demo");
 }
 
-void loop()
+void loop(void)
 {
     thing.run();
 }
