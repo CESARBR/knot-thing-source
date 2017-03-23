@@ -25,14 +25,6 @@
 #include "include/time.h"
 #include "include/avr_log.h"
 
-/*KNoT client storage mapping */
-#define KNOT_UUID_FLAG_ADDR		0
-#define KNOT_UUID_FLAG_LEN		1
-#define KNOT_UUID_ADDR			(KNOT_UUID_FLAG_ADDR + KNOT_UUID_FLAG_LEN)
-#define KNOT_TOKEN_FLAG_ADDR		(KNOT_UUID_ADDR + KNOT_PROTOCOL_UUID_LEN)
-#define KNOT_TOKEN_FLAG_LEN		1
-#define KNOT_TOKEN_ADDR			(KNOT_TOKEN_FLAG_ADDR + KNOT_TOKEN_FLAG_LEN)
-
 /* KNoT protocol client states */
 #define STATE_DISCONNECTED		0
 #define STATE_CONNECTING		1
@@ -44,7 +36,6 @@
 #define STATE_SCHEMA_RESP		7
 #define STATE_ONLINE			8
 #define STATE_ERROR			9
-#define STATE_MAX			(STATE_ERROR+1)
 
 /* Led used to show status on thing */
 #define PIN_LED_STATUS			4
