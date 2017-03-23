@@ -42,9 +42,8 @@ static int32_t previous_value = 0;
 
 static int32_t remove_noise(int32_t value)
 {
-    if(value > (previous_value + BOUNCE_RANGE) || value < (previous_value - BOUNCE_RANGE)) {
+    if (value > (previous_value + BOUNCE_RANGE) || value < (previous_value - BOUNCE_RANGE))
         previous_value = value;
-    }
 
     return previous_value;
 }
@@ -55,8 +54,8 @@ static float get_weight(byte times)
 
     mes = scale.get_value(times);
     a = ref_w/(k2 - k1);
-    b = (-1)*ref_w*k1/(k2-k1);
-    raw_kg = a*mes + b;
+    b = (-1) * ref_w * k1 / (k2 - k1);
+    raw_kg = a * mes + b;
 
     return raw_kg;
 }
@@ -83,7 +82,7 @@ static int scale_read(int32_t *val_int, int32_t *multiplier)
      * Read only on interval
      */
     currentMillis = millis();
-    if(currentMillis - previousMillis >= READ_INTERVAL){
+    if (currentMillis - previousMillis >= READ_INTERVAL) {
         previousMillis = currentMillis;
         kg = get_weight(TIMES_READING) - offset;
     }
@@ -92,7 +91,7 @@ static int scale_read(int32_t *val_int, int32_t *multiplier)
      *  MASS units are defined as type INT in the knot_protocol
      *  Converting from kg to g and removing noise
      */
-    *val_int = remove_noise(kg*1000);
+    *val_int = remove_noise(kg * 1000);
 
     Serial.print("Scale: ");
     Serial.println(*val_int);
@@ -105,7 +104,7 @@ static int scale_write(int32_t *val_int, int32_t *multiplier)
 {
     float new_offset;
 
-    new_offset = *val_int/1000.0;
+    new_offset = *val_int / 1000.0;
     offset = new_offset;
     Serial.print("New offset: ");
     Serial.println(offset);
