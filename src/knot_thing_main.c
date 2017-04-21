@@ -96,6 +96,9 @@ static void reset_data_items(void)
 
 		item->lower_flag = 0;
 		item->upper_flag = 0;
+		/* Last timeout reset */
+		item->last_timeout = 0;
+		/* TODO:last_value_raw needs to be cleared/reset? */
 	}
 }
 
@@ -182,7 +185,8 @@ int8_t knot_thing_register_data_item(uint8_t id, const char *name,
 	/* As "functions" is a union, we need just to set only one of its members */
 	item->functions.int_f.read			= func->int_f.read;
 	item->functions.int_f.write			= func->int_f.write;
-
+	/* Starting last_timeout with the current time */
+	item->last_timeout 				= hal_time_ms();
 	return 0;
 }
 
