@@ -11,7 +11,7 @@
 
 #define BEAM_SENSOR_1_ID      1
 #define BEAM_SENSOR_1_NAME    "Beam Sensor 1"
-#define BEAM_SENSOR_1_PIN     3
+#define BEAM_SENSOR_1_PIN     2
 
 #define BEAM_SENSOR_2_ID      2
 #define BEAM_SENSOR_2_NAME    "Beam Sensor 2"
