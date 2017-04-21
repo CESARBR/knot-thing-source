@@ -249,6 +249,13 @@ int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg)
 	if (data_items[last_item].id == id)
 		msg->hdr.type = KNOT_MSG_SCHEMA_END;
 
+	/* Setting the default config as KNOT_EVT_FLAG_CHANGE */
+	/*
+	 * TODO: Create a function that allows the user to define the
+	 * default config.
+	 */
+	item->config.event_flags = 8;
+
 	return KNOT_SUCCESS;
 }
 
