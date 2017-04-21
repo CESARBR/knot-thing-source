@@ -491,7 +491,7 @@ static int verify_events(knot_msg_data *data)
 
 none:
 	/* Wrap or increment to the next item */
-	pos_count = (pos_count + 1) >= last_item ? 0 : pos_count + 1;
+	pos_count = (pos_count + 1) > last_item ? 0 : pos_count + 1;
 
 	/* Nothing changed */
 	if (comparison == 0)
