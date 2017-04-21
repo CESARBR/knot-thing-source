@@ -13,6 +13,7 @@
 #ifdef ARDUINO
 #include <Arduino.h>
 #define CLEAR_EEPROM_PIN 7
+#define PIN_LED_STATUS   4 //LED used to show thing status
 #endif
 
 #include "knot_thing_protocol.h"
@@ -37,8 +38,7 @@
 #define STATE_ONLINE			8
 #define STATE_ERROR			9
 
-/* Led used to show status on thing */
-#define PIN_LED_STATUS			4
+/* Intervals for LED blinking */
 #define LONG_INTERVAL			2500
 #define SHORT_INTERVAL			150
 
