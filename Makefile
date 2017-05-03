@@ -44,7 +44,7 @@ ifdef release
 endif
 KNOT_HAL_LIB_REPO = knot-hal-source
 KNOT_HAL_LIB_SITE = https://github.com/CESARBR/$(KNOT_HAL_LIB_REPO).git
-KNOT_HAL_HDR_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)/include
+KNOT_HAL_HDR_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)/hal
 KNOT_HAL_SRC_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)/src/hal
 
 KNOT_HAL_SRC_DRIVERS_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)/src/drivers
@@ -72,7 +72,7 @@ ifdef release
 endif
 $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	#Creating subdirectories
-	$(MKDIR) -p ./$(KNOT_THING_NAME)/src/include
+	$(MKDIR) -p ./$(KNOT_THING_NAME)/src/hal
 	$(MKDIR) -p ./$(KNOT_THING_NAME)/examples
 
 	#Filling with configuration files for Arduino IDE
@@ -89,7 +89,7 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	$(CP) -r $(KNOT_PROTOCOL_LIB_DIR)/*[^*.am] ./$(KNOT_THING_NAME)/src
 
 	#Filling hal headers directory
-	$(CP) -r $(KNOT_HAL_HDR_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src/include
+	$(CP) -r $(KNOT_HAL_HDR_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src/hal
 
 	#include folder
 	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/log/ \( ! -name '*linux*' -and -name '*.cpp' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;

@@ -17,14 +17,14 @@
 #endif
 
 #include "knot_thing_protocol.h"
-#include "include/avr_errno.h"
-#include "include/avr_unistd.h"
-#include "include/storage.h"
-#include "include/nrf24.h"
-#include "include/comm.h"
-#include "include/gpio.h"
-#include "include/time.h"
-#include "include/avr_log.h"
+#include <hal/avr_errno.h>
+#include <hal/avr_unistd.h>
+#include <hal/storage.h>
+#include <hal/nrf24.h>
+#include <hal/comm.h>
+#include <hal/gpio.h>
+#include <hal/time.h>
+#include <hal/avr_log.h>
 
 /* KNoT protocol client states */
 #define STATE_DISCONNECTED		0
