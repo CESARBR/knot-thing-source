@@ -195,6 +195,24 @@ int8_t knot_thing_register_config_item(uint8_t id, uint8_t event_flags,
 					uint32_t upper_dec, int32_t lower_int,
 					uint32_t lower_dec)
 {
+	struct _data_items *item;
+
+	/*TODO: Check if exist something in eprom and save the data there*/
+	/*TODO: Check if config is valid*/
+	item = find_item(id);
+
+	if (!item)
+		return -1;
+
+	item->config.event_flags = event_flags;
+	item->config.time_sec = time_sec;
+
+	item->config.lower_limit.val_f.value_int = lower_int;
+	item->config.lower_limit.val_f.value_dec = lower_dec;
+
+	item->config.upper_limit.val_f.value_int = upper_int;
+	item->config.upper_limit.val_f.value_dec = upper_dec;
+
 	return 0;
 }
 
@@ -256,13 +274,6 @@ int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg)
 	/* Send 'end' for the last item (sensor or actuator). */
 	if (data_items[last_item].id == id)
 		msg->hdr.type = KNOT_MSG_SCHEMA_END;
-
-	/* Setting the default config as KNOT_EVT_FLAG_CHANGE */
-	/*
-	 * TODO: Create a function that allows the user to define the
-	 * default config.
-	 */
-	item->config.event_flags = 8;
 
 	return KNOT_SUCCESS;
 }
