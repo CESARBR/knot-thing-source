@@ -43,6 +43,11 @@ public:
 			uint16_t type_id, uint8_t unit, rawDataFunction read,
 			rawDataFunction write);
 
+	int registerDefaultConfig(uint8_t sensor_id, uint8_t event_flags = 1,
+			uint16_t time_sec = 30, int32_t upper_int = 0,
+			uint32_t upper_dec = 0, int32_t lower_int = 0,
+			uint32_t lower_dec = 0);
+
 	void run();
 private:
 
