@@ -85,5 +85,6 @@ int KNoTThing::registerDefaultConfig(uint8_t sensor_id, uint8_t event_flags,
 		uint16_t time_sec, int32_t upper_int, uint32_t upper_dec,
 		int32_t lower_int, uint32_t lower_dec)
 {
-	return 0;
+	return knot_thing_register_config_item(sensor_id, event_flags,
+			time_sec, upper_int, upper_dec, lower_int, lower_dec);
 }
