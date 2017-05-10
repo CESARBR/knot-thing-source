@@ -112,6 +112,12 @@ void setup()
         KNOT_UNIT_LUMINOSITY_LM, blue_read, blue_write);
     Serial.println("RGB LED KNoT Demo");
 
+    thing.registerDefaultConfig(RED_LED_ID);
+
+    thing.registerDefaultConfig(GREEN_LED_ID);
+
+    thing.registerDefaultConfig(BLUE_LED_ID);
+
 }
 
 

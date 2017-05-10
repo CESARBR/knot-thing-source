@@ -47,6 +47,9 @@ void setup()
     thing.init("KNoTThing");
     thing.registerBoolData(LIGHT_BULB_NAME, LIGHT_BULB_ID, KNOT_TYPE_ID_SWITCH,
         KNOT_UNIT_NOT_APPLICABLE, light_read, light_write);
+
+    thing.registerDefaultConfig(LIGHT_BULB_ID);
+
     Serial.println("Remote Light Bulb KNoT Demo");
 }
 

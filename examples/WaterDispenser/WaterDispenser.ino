@@ -120,6 +120,7 @@ void setup(void)
     thing.init("KNoTThing");
     thing.registerIntData(SCALE_NAME, SCALE_ID, KNOT_TYPE_ID_MASS,
                     KNOT_UNIT_MASS_G, scale_read, scale_write);
+    thing.registerDefaultConfig(SCALE_ID);
 
     /* Read offset from EEPROM */
     EEPROM.get(OFFSET_ADDR, offset);

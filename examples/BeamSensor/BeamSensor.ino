@@ -50,6 +50,10 @@ void setup()
 			KNOT_TYPE_ID_PRESENCE, KNOT_UNIT_NOT_APPLICABLE,
 			beam_read_2, NULL);
 
+	thing.registerDefaultConfig(BEAM_SENSOR_1_ID);
+
+	thing.registerDefaultConfig(BEAM_SENSOR_2_ID);
+
 	Serial.println("Beam Sensor KNoT Demo");
 }
 
