@@ -5,3 +5,5 @@ KNoTThing.zip
 cscope.in.out
 cscope.out
 cscope.po.out
+
+*.patch
