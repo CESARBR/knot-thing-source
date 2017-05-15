@@ -54,7 +54,7 @@ void setup()
 
 	thing.registerDefaultConfig(BEAM_SENSOR_2_ID);
 
-	Serial.println("Beam Sensor KNoT Demo");
+	Serial.println(F("Beam Sensor KNoT Demo"));
 }
 
 void loop()
