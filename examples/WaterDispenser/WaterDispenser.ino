@@ -72,7 +72,7 @@ static int scale_read(int32_t *val_int, int32_t *multiplier)
         /* Save offset on EEPROM */
         EEPROM.put(OFFSET_ADDR, offset);
 
-        Serial.print("New offset: ");
+        Serial.print(F("New offset: "));
         Serial.println(offset);
     }
 
@@ -93,7 +93,7 @@ static int scale_read(int32_t *val_int, int32_t *multiplier)
      */
     *val_int = remove_noise(kg * 1000);
 
-    Serial.print("Scale: ");
+    Serial.print(F("Scale: "));
     Serial.println(*val_int);
     *multiplier = 1;
 
@@ -106,7 +106,7 @@ static int scale_write(int32_t *val_int, int32_t *multiplier)
 
     new_offset = *val_int / 1000.0;
     offset = new_offset;
-    Serial.print("New offset: ");
+    Serial.print(F("New offset: "));
     Serial.println(offset);
 
     return 0;
@@ -127,7 +127,7 @@ void setup(void)
 
     pinMode(BUTTON_PIN, INPUT);
 
-    Serial.println("Water Dispenser KNoT Demo");
+    Serial.println(F("Water Dispenser KNoT Demo"));
 }
 
 void loop(void)
