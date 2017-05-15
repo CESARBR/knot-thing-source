@@ -18,22 +18,22 @@ KNoTThing thing;
 static int light_read(uint8_t *val)
 {
     *val = digitalRead(LIGHT_BULB_PIN);
-    Serial.print("Light Status: ");
+    Serial.print(F("Light Status: "));
     if (*val)
-      Serial.println("ON");
+      Serial.println(F("ON"));
     else
-      Serial.println("OFF");
+      Serial.println(F("OFF"));
     return 0;
 }
 
 static int light_write(uint8_t *val)
 {
     digitalWrite(LIGHT_BULB_PIN, *val);
-    Serial.print("Light Status: ");
+    Serial.print(F("Light Status: "));
     if (*val)
-      Serial.println("ON");
+      Serial.println(F("ON"));
     else
-      Serial.println("OFF");
+      Serial.println(F("OFF"));
       /* TODO: Save light status in EEMPROM in to handle when reboot */
     return 0;
 }
@@ -50,7 +50,7 @@ void setup()
 
     thing.registerDefaultConfig(LIGHT_BULB_ID);
 
-    Serial.println("Remote Light Bulb KNoT Demo");
+    Serial.println(F("Remote Light Bulb KNoT Demo"));
 }
 
 
