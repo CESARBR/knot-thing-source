@@ -73,7 +73,7 @@ static uint16_t status_interval;
  * FIXME: Thing address should be received via NFC
  * Mac address must be stored in big endian format
  */
-void set_nrf24MAC()
+static void set_nrf24MAC(void)
 {
 	uint8_t mac_mask = 4;
 
@@ -329,7 +329,7 @@ static int set_data(knot_msg_data *data)
 	return 0;
 }
 
-static int get_data(knot_msg_item *item)
+static int get_data(const knot_msg_item *item)
 {
 	int8_t err;
 	knot_msg_data data_resp;
@@ -352,12 +352,12 @@ static int get_data(knot_msg_item *item)
 	return 0;
 }
 
-static int data_resp(knot_msg_result *action)
+static int data_resp(const knot_msg_result *action)
 {
 	return action->result;
 }
 
-static int send_data(knot_msg_data *msg_data)
+static int send_data(const knot_msg_data *msg_data)
 {
 	int8_t err;
 
