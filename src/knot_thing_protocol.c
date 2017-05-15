@@ -13,7 +13,7 @@
 #ifdef ARDUINO
 #include <Arduino.h>
 #define CLEAR_EEPROM_PIN 7
-#define PIN_LED_STATUS   4 //LED used to show thing status
+#define PIN_LED_STATUS   6 //LED used to show thing status
 #endif
 
 #include "knot_thing_protocol.h"
