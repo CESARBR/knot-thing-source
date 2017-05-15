@@ -32,7 +32,7 @@ static int32_t blue_led = 0;
 static int red_read(int32_t *val, int32_t *multiplier)
 {
     *val = red_led;
-    Serial.print("RED LED: ");
+    Serial.print(F("RED LED: "));
     Serial.println(*val);
     *multiplier = 1;
     return 0;
@@ -44,7 +44,7 @@ static int red_write(int32_t *val, int32_t *multiplier)
     red_led = *val;
 
     analogWrite(RED_LED_PIN, *val);
-    Serial.print("RED LED: ");
+    Serial.print(F("RED LED: "));
     Serial.println(*val);
       /* TODO: Save light status in EEMPROM in to handle when reboot */
     return 0;
@@ -53,7 +53,7 @@ static int red_write(int32_t *val, int32_t *multiplier)
 static int green_read(int32_t *val, int32_t *multiplier)
 {
     *val = green_led;
-    Serial.print("GREEN LED: ");
+    Serial.print(F("GREEN LED: "));
     Serial.println(*val);
     *multiplier = 1;
     return 0;
@@ -65,7 +65,7 @@ static int green_write(int32_t *val, int32_t *multiplier)
     green_led = *val;
 
     analogWrite(GREEN_LED_PIN, *val);
-    Serial.print("GREEN LED: ");
+    Serial.print(F("GREEN LED: "));
     Serial.println(*val);
       /* TODO: Save light status in EEMPROM in to handle when reboot */
     return 0;
@@ -74,7 +74,7 @@ static int green_write(int32_t *val, int32_t *multiplier)
 static int blue_read(int32_t *val, int32_t *multiplier)
 {
     *val = blue_led;
-    Serial.print("BLUE LED: ");
+    Serial.print(F("BLUE LED: "));
     Serial.println(*val);
     *multiplier = 1;
     return 0;
@@ -86,7 +86,7 @@ static int blue_write(int32_t *val, int32_t *multiplier)
     green_led = *val;
 
     analogWrite(BLUE_LED_PIN, *val);
-    Serial.print("BLUE LED: ");
+    Serial.print(F("BLUE LED: "));
     Serial.println(*val);
       /* TODO: Save light status in EEMPROM in to handle when reboot */
     return 0;
@@ -110,7 +110,7 @@ void setup()
 
     thing.registerIntData(BLUE_LED_NAME, BLUE_LED_ID, KNOT_TYPE_ID_LUMINOSITY,
         KNOT_UNIT_LUMINOSITY_LM, blue_read, blue_write);
-    Serial.println("RGB LED KNoT Demo");
+    Serial.println(F("RGB LED KNoT Demo"));
 
     thing.registerDefaultConfig(RED_LED_ID);
 
