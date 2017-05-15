@@ -86,7 +86,8 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	$(CP) -r $(KNOT_THING_FILES)/*.cpp ./$(KNOT_THING_NAME)/src
 
 	#Filling protocol directory
-	$(CP) -r $(KNOT_PROTOCOL_LIB_DIR)/*[^*.am] ./$(KNOT_THING_NAME)/src
+	$(CP) -r $(KNOT_PROTOCOL_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src
+	$(CP) -r $(KNOT_PROTOCOL_LIB_DIR)/*.c ./$(KNOT_THING_NAME)/src
 
 	#Filling hal headers directory
 	$(FIND) ./$(KNOT_HAL_HDR_LIB_DIR) \( ! -name '*linux*' -and -name '*.h' \) -exec $(CP) -r {} ./$(KNOT_THING_NAME)/src/hal \;
