@@ -109,7 +109,7 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 
 	hal_log_info("MAC: %s", macString);
 
-	if (hal_comm_init("NRF0", NULL) < 0)
+	if (hal_comm_init("NRF0", &addr) < 0)
 		return -1;
 
 	sock = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_RAW);
@@ -637,6 +637,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 int knot_thing_protocol_run(void)
 {
 	static uint8_t	state = STATE_DISCONNECTED;
+	struct nrf24_mac peer;
 
 	if (enable_run == 0) {
 		return -1;
@@ -670,7 +671,7 @@ int knot_thing_protocol_run(void)
 		 * waiting, less then 0 means error and greater then 0 success
 		 */
 		led_status(STATE_CONNECTING);
-		cli_sock = hal_comm_accept(sock, &(addr.address.uint64));
+		cli_sock = hal_comm_accept(sock, &peer);
 		if (cli_sock == -EAGAIN)
 			break;
 		else if (cli_sock < 0) {
