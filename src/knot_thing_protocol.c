@@ -429,7 +429,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 {
 	char uuid[KNOT_PROTOCOL_UUID_LEN + 1];
 	char token[KNOT_PROTOCOL_TOKEN_LEN + 1];
-	static uint8_t	state = STATE_SETUP,
+	static uint8_t	substate = STATE_SETUP,
 			previous_state = STATE_DISCONNECTED;
 	int8_t retval;
 	ssize_t ilen;
@@ -439,17 +439,17 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	memset(&msg_data, 0, sizeof(msg_data));
 
 	if (breset)
-		state = STATE_SETUP;
+		substate = STATE_SETUP;
 
-	if (state != STATE_ERROR) {
+	if (substate != STATE_ERROR) {
 		if (mgmt_read() == 0)
 			return STATE_DISCONNECTED;
 
-		previous_state = state;
+		previous_state = substate;
 	}
 
 	/* Network message handling state machine */
-	switch (state) {
+	switch (substate) {
 	case STATE_SETUP:
 		/*
 		 * If uuid/token were found, read the addresses and send
@@ -464,13 +464,13 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				KNOT_PROTOCOL_TOKEN_LEN);
 
 		if (is_uuid(uuid)) {
-			state = STATE_AUTHENTICATING;
+			substate = STATE_AUTHENTICATING;
 			if (send_auth(uuid, token) < 0)
-				state = STATE_ERROR;
+				substate = STATE_ERROR;
 		} else {
-			state = STATE_REGISTERING;
+			substate = STATE_REGISTERING;
 			if (send_register() < 0)
-				state = STATE_ERROR;
+				substate = STATE_ERROR;
 		}
 		last_timeout = hal_time_ms();
 		break;
@@ -483,30 +483,30 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		led_status(STATE_AUTHENTICATING);
 		retval = read_auth();
 		if (!retval) {
-			state = STATE_ONLINE;
+			substate = STATE_ONLINE;
 			/* Checks if all the schemas were sent to the GW and */
 			hal_storage_read_end(HAL_STORAGE_ID_SCHEMA_FLAG,
 					&schema_flag, sizeof(schema_flag));
 			if (!schema_flag)
-				state = STATE_SCHEMA;
+				substate = STATE_SCHEMA;
 		}
 		else if (retval != -EAGAIN)
-			state = STATE_ERROR;
+			substate = STATE_ERROR;
 		else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
-			state = STATE_SETUP;
+			substate = STATE_SETUP;
 		break;
 
 	case STATE_REGISTERING:
 		led_status(STATE_REGISTERING);
 		retval = read_register();
 		if (!retval)
-			state = STATE_SCHEMA;
+			substate = STATE_SCHEMA;
 		else if (retval != -EAGAIN)
-			state = STATE_ERROR;
+			substate = STATE_ERROR;
 		else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
-			state = STATE_SETUP;
+			substate = STATE_SETUP;
 		break;
 	/*
 	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
@@ -520,14 +520,14 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		switch (retval) {
 		case KNOT_SUCCESS:
 			last_timeout = hal_time_ms();
-			state = STATE_SCHEMA_RESP;
+			substate = STATE_SCHEMA_RESP;
 			break;
 		case KNOT_ERROR_UNKNOWN:
-			state = STATE_ERROR;
+			substate = STATE_ERROR;
 			break;
 		case KNOT_SCHEMA_EMPTY:
 		case KNOT_INVALID_DEVICE:
-			state = STATE_SCHEMA;
+			substate = STATE_SCHEMA;
 			schema_sensor_id++;
 			break;
 		default:
@@ -550,11 +550,11 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				kreq.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
 				break;
 			if (kreq.action.result != KNOT_SUCCESS) {
-				state = STATE_ERROR;
+				substate = STATE_ERROR;
 				break;
 			}
 			if (kreq.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
-				state = STATE_SCHEMA;
+				substate = STATE_SCHEMA;
 				schema_sensor_id++;
 				break;
 			}
@@ -562,11 +562,11 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 			schema_flag = true;
 			hal_storage_write_end(HAL_STORAGE_ID_SCHEMA_FLAG,
 					&schema_flag, sizeof(schema_flag));
-			state = STATE_ONLINE;
+			substate = STATE_ONLINE;
 			schema_sensor_id = 0;
 		} else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
-			state = STATE_SCHEMA;
+			substate = STATE_SCHEMA;
 		break;
 
 	case STATE_ONLINE:
@@ -591,7 +591,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 
 			case KNOT_MSG_DATA_RESP:
 				if (data_resp(&kreq.action))
-					state = STATE_ERROR;
+					substate = STATE_ERROR;
 				break;
 
 			default:
@@ -602,7 +602,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		/* If some event ocurred send msg_data */
 		if (eventf(&msg_data) == 0)
 			if (send_data(&msg_data) < 0)
-				state = STATE_ERROR;
+				substate = STATE_ERROR;
 		break;
 
 	case STATE_ERROR:
@@ -636,7 +636,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 
 int knot_thing_protocol_run(void)
 {
-	static uint8_t	state = STATE_DISCONNECTED;
+	static uint8_t	run_state = STATE_DISCONNECTED;
 	struct nrf24_mac peer;
 
 	if (enable_run == 0) {
@@ -649,12 +649,12 @@ int knot_thing_protocol_run(void)
 	if (clear_data()) {
 		hal_storage_reset_end();
 		hal_comm_close(cli_sock);
-		state = STATE_DISCONNECTED;
+		run_state = STATE_DISCONNECTED;
 		set_nrf24MAC();
 	}
 
 	/* Network message handling state machine */
-	switch (state) {
+	switch (run_state) {
 	case STATE_DISCONNECTED:
 		/* Internally listen starts broadcasting presence*/
 		led_status(STATE_DISCONNECTED);
@@ -662,7 +662,7 @@ int knot_thing_protocol_run(void)
 			break;
 		}
 
-		state = STATE_CONNECTING;
+		run_state = STATE_CONNECTING;
 		break;
 
 	case STATE_CONNECTING:
@@ -675,20 +675,20 @@ int knot_thing_protocol_run(void)
 		if (cli_sock == -EAGAIN)
 			break;
 		else if (cli_sock < 0) {
-			state = STATE_DISCONNECTED;
+			run_state = STATE_DISCONNECTED;
 			break;
 		}
-		state = knot_thing_protocol_connected(true);
+		run_state = knot_thing_protocol_connected(true);
 		break;
 
 	case STATE_CONNECTED:
-		state = knot_thing_protocol_connected(false);
+		run_state = knot_thing_protocol_connected(false);
 		break;
 
 	default:
 		/* TODO: log invalid state */
 		/* TODO: close connection if needed */
-		state = STATE_DISCONNECTED;
+		run_state = STATE_DISCONNECTED;
 		break;
 	}
 
