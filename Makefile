@@ -89,7 +89,7 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	$(CP) -r $(KNOT_PROTOCOL_LIB_DIR)/*[^*.am] ./$(KNOT_THING_NAME)/src
 
 	#Filling hal headers directory
-	$(CP) -r $(KNOT_HAL_HDR_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src/hal
+	$(FIND) ./$(KNOT_HAL_HDR_LIB_DIR) \( ! -name '*linux*' -and -name '*.h' \) -exec $(CP) -r {} ./$(KNOT_THING_NAME)/src/hal \;
 
 	#include folder
 	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/log/ \( ! -name '*linux*' -and -name '*.cpp' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
@@ -111,7 +111,7 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	$(FIND) ./$(KNOT_HAL_SRC_SPI_LIB_DIR)/ \( \( -name '*.c' -or -name '*.h' \) -and ! -name '*linux*' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
 
 	# Include examples files
-	$(CP) -r ./examples/* ./$(KNOT_THING_NAME)/examples/
+	$(FIND) ./examples/* \( ! -name '*.c' -prune \) -exec $(CP) -r {} ./$(KNOT_THING_NAME)/examples/ \;
 
 	#Zip directory
 	$(ZIP) -r $(KNOT_THING_TARGET) ./$(KNOT_THING_NAME)
