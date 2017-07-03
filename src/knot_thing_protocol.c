@@ -671,7 +671,7 @@ int knot_thing_protocol_run(void)
 		 * waiting, less then 0 means error and greater then 0 success
 		 */
 		led_status(STATE_CONNECTING);
-		cli_sock = hal_comm_accept(sock, &peer);
+		cli_sock = hal_comm_accept(sock, (void *) &peer);
 		if (cli_sock == -EAGAIN)
 			break;
 		else if (cli_sock < 0) {
