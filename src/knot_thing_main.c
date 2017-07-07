@@ -115,7 +115,7 @@ static int data_function_is_valid(knot_data_functions *func)
 
 void knot_thing_exit(void)
 {
-
+	knot_thing_protocol_exit();
 }
 
 int8_t knot_thing_register_raw_data_item(uint8_t id, const char *name,
