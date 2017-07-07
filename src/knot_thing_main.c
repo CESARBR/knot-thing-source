@@ -278,7 +278,7 @@ int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg)
 	return KNOT_SUCCESS;
 }
 
-static int data_item_read(uint8_t id, knot_msg_data *data)
+int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 {
 	uint8_t len, uint8_val = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];
 	int32_t int32_val = 0, multiplier = 0;
@@ -345,7 +345,7 @@ static int data_item_read(uint8_t id, knot_msg_data *data)
 	return 0;
 }
 
-static int data_item_write(uint8_t id, knot_msg_data *data)
+int knot_thing_data_item_write(uint8_t id, knot_msg_data *data)
 {
 	int8_t ret_val = -1;
 	uint8_t len;
@@ -400,7 +400,7 @@ int8_t knot_thing_run(void)
 	return knot_thing_protocol_run();
 }
 
-static int verify_events(knot_msg_data *data)
+int knot_thing_verify_events(knot_msg_data *data)
 {
 	struct _data_items *item;
 	knot_value_types *last;
@@ -418,7 +418,7 @@ static int verify_events(knot_msg_data *data)
 	if (item->id == 0)
 		goto none;
 
-	if (data_item_read(item->id, data) < 0)
+	if (knot_thing_data_item_read(item->id, data) < 0)
 		goto none;
 
 	last = &(item->last_data);
@@ -529,7 +529,9 @@ int8_t knot_thing_init(const char *thing_name)
 {
 	reset_data_items();
 
-	return knot_thing_protocol_init(thing_name, data_item_read,
-				data_item_write, knot_thing_create_schema,
-				knot_thing_config_data_item, verify_events);
+	return knot_thing_protocol_init(thing_name, knot_thing_data_item_read,
+				knot_thing_data_item_write, 
+				knot_thing_create_schema,
+				knot_thing_config_data_item, 
+				knot_thing_verify_events);
 }
