@@ -16,7 +16,6 @@
 #define PIN_LED_STATUS   6 //LED used to show thing status
 #endif
 
-#include "knot_thing_protocol.h"
 #include <hal/avr_errno.h>
 #include <hal/avr_unistd.h>
 #include <hal/storage.h>
@@ -25,6 +24,8 @@
 #include <hal/gpio.h>
 #include <hal/time.h>
 #include <hal/avr_log.h>
+#include "knot_thing_protocol.h"
+#include "knot_thing_main.h"
 
 /* KNoT protocol client states */
 #define STATE_DISCONNECTED		0
@@ -54,12 +55,7 @@
 
 static uint8_t enable_run = 0, schema_sensor_id = 0;
 static char device_name[KNOT_PROTOCOL_DEVICE_NAME_LEN];
-static schema_function schemaf;
-static data_function thing_read;
-static data_function thing_write;
-static config_function configf;
 static int sock = -1;
-static events_function eventf;
 static int cli_sock = -1;
 static struct nrf24_mac addr;
 static bool schema_flag = false;
@@ -87,9 +83,7 @@ static void set_nrf24MAC(void)
 static unsigned long time;
 static uint32_t last_timeout;
 
-int knot_thing_protocol_init(const char *thing_name, data_function read,
-	data_function write, schema_function schema, config_function config,
-							events_function event)
+int knot_thing_protocol_init(const char *thing_name)
 {
 	uint8_t len;
 	char macString[25] = {0};
@@ -122,11 +116,6 @@ int knot_thing_protocol_init(const char *thing_name, data_function read,
 	strncpy(device_name, thing_name, len);
 	time = 0;
 	enable_run = 1;
-	schemaf = schema;
-	thing_read = read;
-	thing_write = write;
-	configf = config;
-	eventf = event;
 	last_timeout = 0;
 
 	return 0;
@@ -264,7 +253,7 @@ static int send_schema(void)
 	ssize_t nbytes;
 
 	memset(&msg, 0, sizeof(msg));
-	err = schemaf(schema_sensor_id, &msg);
+	err = knot_thing_create_schema(schema_sensor_id, &msg);
 
 	if (err < 0)
 		return err;
@@ -284,10 +273,11 @@ static int config(knot_msg_config *config)
 	knot_msg_item resp;
 	ssize_t nbytes;
 
-	err = configf(config->sensor_id, config->values.event_flags,
-						config->values.time_sec,
-						&config->values.lower_limit,
-						&config->values.upper_limit);
+	err = knot_thing_config_data_item(config->sensor_id,
+					config->values.event_flags,
+					config->values.time_sec,
+					&config->values.lower_limit,
+					&config->values.upper_limit);
 
 	if (err)
 		return KNOT_ERROR_UNKNOWN;
@@ -310,7 +300,7 @@ static int set_data(knot_msg_data *data)
 	int8_t err;
 	ssize_t nbytes;
 
-	err = thing_write(data->sensor_id, data);
+	err = knot_thing_data_item_write(data->sensor_id, data);
 
 	/*
 	 * GW must be aware if the data was succesfully set, so we resend
@@ -336,7 +326,7 @@ static int get_data(const knot_msg_item *item)
 	ssize_t nbytes;
 
 	memset(&data_resp, 0, sizeof(data_resp));
-	err = thing_read(item->sensor_id, &data_resp);
+	err = knot_thing_data_item_read(item->sensor_id, &data_resp);
 
 	data_resp.hdr.type = KNOT_MSG_DATA;
 	if (err < 0)
@@ -600,7 +590,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 			}
 		}
 		/* If some event ocurred send msg_data */
-		if (eventf(&msg_data) == 0)
+		if (knot_thing_verify_events(&msg_data) == 0)
 			if (send_data(&msg_data) < 0)
 				substate = STATE_ERROR;
 		break;

@@ -529,9 +529,5 @@ int8_t knot_thing_init(const char *thing_name)
 {
 	reset_data_items();
 
-	return knot_thing_protocol_init(thing_name, knot_thing_data_item_read,
-				knot_thing_data_item_write, 
-				knot_thing_create_schema,
-				knot_thing_config_data_item, 
-				knot_thing_verify_events);
+	return knot_thing_protocol_init(thing_name);
 }
