@@ -53,6 +53,7 @@
 /* Retransmission timeout in ms */
 #define RETRANSMISSION_TIMEOUT				20000
 
+static knot_msg msg;
 static struct nrf24_mac addr;
 static unsigned long clear_time;
 static uint32_t last_timeout;
@@ -164,19 +165,14 @@ static void led_status(uint8_t status)
 
 static int send_register(void)
 {
-	ssize_t nbytes;
-	knot_msg_register msg;
 	uint8_t len;
 
-	memset(&msg, 0, sizeof(msg));
-	len = MIN(sizeof(msg.devName), strlen(device_name));
-
+	len = MIN(sizeof(msg.reg.devName), strlen(device_name));
 	msg.hdr.type = KNOT_MSG_REGISTER_REQ;
-	strncpy(msg.devName, device_name, len);
+	strncpy(msg.reg.devName, device_name, len);
 	msg.hdr.payload_len = len;
 
-	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) + len);
-	if (nbytes < 0)
+	if (hal_comm_write(cli_sock, &(msg.buffer), sizeof(msg.hdr) + len) < 0)
 		return -1;
 
 	return 0;
@@ -185,19 +181,16 @@ static int send_register(void)
 static int read_register(void)
 {
 	ssize_t nbytes;
-	knot_msg_credential crdntl;
 
-	memset(&crdntl, 0, sizeof(crdntl));
-
-	nbytes = hal_comm_read(cli_sock, &crdntl, sizeof(crdntl));
+	nbytes = hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE);
 
 	if (nbytes > 0) {
-		if (crdntl.result != KNOT_SUCCESS)
+		if (msg.cred.result != KNOT_SUCCESS)
 			return -1;
 
-		hal_storage_write_end(HAL_STORAGE_ID_UUID, crdntl.uuid,
+		hal_storage_write_end(HAL_STORAGE_ID_UUID, msg.cred.uuid,
 						KNOT_PROTOCOL_UUID_LEN);
-		hal_storage_write_end(HAL_STORAGE_ID_TOKEN, crdntl.token,
+		hal_storage_write_end(HAL_STORAGE_ID_TOKEN, msg.cred.token,
 						KNOT_PROTOCOL_TOKEN_LEN);
 	} else if (nbytes < 0)
 		return nbytes;
@@ -205,38 +198,14 @@ static int read_register(void)
 	return 0;
 }
 
-static int send_auth(const char *uuid, const char *token)
-{
-	knot_msg_authentication msg;
-	ssize_t nbytes;
-
-	memset(&msg, 0, sizeof(msg));
-
-	msg.hdr.type = KNOT_MSG_AUTH_REQ;
-	msg.hdr.payload_len = sizeof(msg.uuid) + sizeof(msg.token);
-
-	strncpy(msg.uuid, uuid, sizeof(msg.uuid));
-	strncpy(msg.token, token, sizeof(msg.token));
-
-	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
-							msg.hdr.payload_len);
-	if (nbytes < 0)
-		return -1;
-
-	return 0;
-}
-
 static int read_auth(void)
 {
-	knot_msg_result resp;
 	ssize_t nbytes;
 
-	memset(&resp, 0, sizeof(resp));
-
-	nbytes = hal_comm_read(cli_sock, &resp, sizeof(resp));
+	nbytes = hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE);
 
 	if (nbytes > 0) {
-		if (resp.result != KNOT_SUCCESS)
+		if (msg.action.result != KNOT_SUCCESS)
 			return -1;
 	} else if (nbytes < 0)
 		return nbytes;
@@ -247,112 +216,80 @@ static int read_auth(void)
 static int send_schema(void)
 {
 	int8_t err;
-	knot_msg_schema msg;
-	ssize_t nbytes;
 
-	memset(&msg, 0, sizeof(msg));
-	err = knot_thing_create_schema(schema_sensor_id, &msg);
+	err = knot_thing_create_schema(schema_sensor_id, &(msg.schema));
 
 	if (err < 0)
 		return err;
 
-	nbytes = hal_comm_write(cli_sock, &msg, sizeof(msg.hdr) +
-							msg.hdr.payload_len);
-	if (nbytes < 0)
+	if (hal_comm_write(cli_sock, &(msg.buffer), 
+				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		/* TODO create a better error define in the protocol */
 		return KNOT_ERROR_UNKNOWN;
 
 	return KNOT_SUCCESS;
 }
 
-static int config(knot_msg_config *config)
+static int set_config(uint8_t sensor_id)
 {
 	int8_t err;
-	knot_msg_item resp;
-	ssize_t nbytes;
 
-	err = knot_thing_config_data_item(config->sensor_id,
-					config->values.event_flags,
-					config->values.time_sec,
-					&config->values.lower_limit,
-					&config->values.upper_limit);
-
+	err = knot_thing_config_data_item(msg.config.sensor_id, 
+					msg.config.values.event_flags,
+					msg.config.values.time_sec,
+					&(msg.config.values.lower_limit),
+					&(msg.config.values.upper_limit));
 	if (err)
 		return KNOT_ERROR_UNKNOWN;
 
-	memset(&resp, 0, sizeof(resp));
-	resp.sensor_id = config->sensor_id;
-	resp.hdr.type = KNOT_MSG_CONFIG_RESP;
-	resp.hdr.payload_len = sizeof(resp.sensor_id);
+	msg.item.sensor_id = sensor_id;
+	msg.hdr.type = KNOT_MSG_CONFIG_RESP;
+	msg.hdr.payload_len = sizeof(msg.item.sensor_id);
 
-	nbytes = hal_comm_write(cli_sock, &resp, sizeof(resp.hdr) +
-							resp.hdr.payload_len);
-	if (nbytes < 0)
+	if (hal_comm_write(cli_sock, &(msg.buffer), 
+				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
 	return 0;
 }
 
-static int set_data(knot_msg_data *data)
+static int set_data(uint8_t sensor_id)
 {
 	int8_t err;
-	ssize_t nbytes;
 
-	err = knot_thing_data_item_write(data->sensor_id, data);
+	err = knot_thing_data_item_write(sensor_id, &(msg.data));
 
 	/*
 	 * GW must be aware if the data was succesfully set, so we resend
 	 * the request only changing the header type
 	 */
-	data->hdr.type = KNOT_MSG_DATA_RESP;
+	msg.hdr.type = KNOT_MSG_DATA_RESP;
 	/* TODO: Improve error handling: Sensor not found, invalid data, etc */
 	if (err < 0)
-		data->hdr.type = KNOT_ERROR_UNKNOWN;
+		msg.hdr.type = KNOT_ERROR_UNKNOWN;
 
-	nbytes = hal_comm_write(cli_sock, data, sizeof(data->hdr) +
-							data->hdr.payload_len);
-	if (nbytes < 0)
-		return nbytes;
-
-	return 0;
-}
-
-static int get_data(const knot_msg_item *item)
-{
-	int8_t err;
-	knot_msg_data data_resp;
-	ssize_t nbytes;
-
-	memset(&data_resp, 0, sizeof(data_resp));
-	err = knot_thing_data_item_read(item->sensor_id, &data_resp);
-
-	data_resp.hdr.type = KNOT_MSG_DATA;
-	if (err < 0)
-		data_resp.hdr.type = KNOT_ERROR_UNKNOWN;
-
-	data_resp.sensor_id = item->sensor_id;
-
-	nbytes = hal_comm_write(cli_sock, &data_resp, sizeof(data_resp.hdr) +
-						data_resp.hdr.payload_len);
-	if (nbytes < 0)
+	if (hal_comm_write(cli_sock, &(msg.buffer), 
+				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
 	return 0;
 }
 
-static int data_resp(const knot_msg_result *action)
-{
-	return action->result;
-}
-
-static int send_data(const knot_msg_data *msg_data)
+static int get_data(uint8_t sensor_id)
 {
 	int8_t err;
 
-	err = hal_comm_write(cli_sock, msg_data,
-			sizeof(msg_data->hdr) + msg_data->hdr.payload_len);
+	err = knot_thing_data_item_read(sensor_id, &(msg.data));
+
+	msg.hdr.type = KNOT_MSG_DATA;
 	if (err < 0)
-		return err;
+		msg.hdr.type = KNOT_ERROR_UNKNOWN;
+
+	msg.data.sensor_id = sensor_id;
+
+	if (hal_comm_write(cli_sock, &(msg.buffer), 
+				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
+		return -1;
 
 	return 0;
 }
@@ -415,16 +352,10 @@ static int8_t mgmt_read(void)
 
 static uint8_t knot_thing_protocol_connected(bool breset)
 {
-	char uuid[KNOT_PROTOCOL_UUID_LEN + 1];
-	char token[KNOT_PROTOCOL_TOKEN_LEN + 1];
 	static uint8_t	substate = STATE_SETUP,
 			previous_state = STATE_DISCONNECTED;
-	int8_t retval;
 	ssize_t ilen;
-	knot_msg kreq;
-	knot_msg_data msg_data;
-
-	memset(&msg_data, 0, sizeof(msg_data));
+	int8_t retval;
 
 	if (breset)
 		substate = STATE_SETUP;
@@ -444,16 +375,19 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		 * the auth request, otherwise register request
 		 */
 		led_status(STATE_SETUP);
-		memset(uuid, 0, sizeof(uuid));
-		memset(token, 0, sizeof(token));
-		hal_storage_read_end(HAL_STORAGE_ID_UUID, uuid,
+		hal_storage_read_end(HAL_STORAGE_ID_UUID, &(msg.auth.uuid),
 					KNOT_PROTOCOL_UUID_LEN);
-		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, token,
+		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, &(msg.auth.token),
 				KNOT_PROTOCOL_TOKEN_LEN);
 
-		if (is_uuid(uuid)) {
+		if (is_uuid(msg.auth.uuid)) {
 			substate = STATE_AUTHENTICATING;
-			if (send_auth(uuid, token) < 0)
+			msg.hdr.type = KNOT_MSG_AUTH_REQ;
+			msg.hdr.payload_len = KNOT_PROTOCOL_UUID_LEN + 
+						KNOT_PROTOCOL_TOKEN_LEN;
+
+			if (hal_comm_write(cli_sock, &(msg.buffer), 
+				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 				substate = STATE_ERROR;
 		} else {
 			substate = STATE_REGISTERING;
@@ -519,7 +453,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 			schema_sensor_id++;
 			break;
 		default:
-			/* TODO: invalid command */
+			substate = STATE_ERROR;
 			break;
 		}
 		break;
@@ -532,16 +466,15 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 */
 	case STATE_SCHEMA_RESP:
 		led_status(STATE_SCHEMA_RESP);
-		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
-		if (ilen > 0) {
-			if (kreq.hdr.type != KNOT_MSG_SCHEMA_RESP &&
-				kreq.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
+		if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) > 0) {
+			if (msg.hdr.type != KNOT_MSG_SCHEMA_RESP &&
+				msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
 				break;
-			if (kreq.action.result != KNOT_SUCCESS) {
+			if (msg.action.result != KNOT_SUCCESS) {
 				substate = STATE_ERROR;
 				break;
 			}
-			if (kreq.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
+			if (msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
 				substate = STATE_SCHEMA;
 				schema_sensor_id++;
 				break;
@@ -560,25 +493,24 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	case STATE_ONLINE:
 		led_status(STATE_ONLINE);
 
-		ilen = hal_comm_read(cli_sock, &kreq, sizeof(kreq));
-
-		if (ilen > 0) {
+		if (hal_comm_read(cli_sock, &(msg.buffer), 
+						KNOT_MSG_SIZE) > 0) {
 			/* There is config or set data */
-			switch (kreq.hdr.type) {
+			switch (msg.hdr.type) {
 			case KNOT_MSG_SET_CONFIG:
-				config(&kreq.config);
+				set_config(&msg.config);
 				break;
 
 			case KNOT_MSG_SET_DATA:
-				set_data(&kreq.data);
+				set_data(msg.data.sensor_id);
 				break;
 
 			case KNOT_MSG_GET_DATA:
-				get_data(&kreq.item);
+				get_data(&msg.item.sensor_id);
 				break;
 
 			case KNOT_MSG_DATA_RESP:
-				if (data_resp(&kreq.action))
+				if (msg.action.result == 0)
 					substate = STATE_ERROR;
 				break;
 
@@ -588,8 +520,9 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 			}
 		}
 		/* If some event ocurred send msg_data */
-		if (knot_thing_verify_events(&msg_data) == 0)
-			if (send_data(&msg_data) < 0)
+		if (knot_thing_verify_events(&(msg.data)) == 0)
+			if (hal_comm_write(cli_sock, &(msg.buffer),
+			sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 				substate = STATE_ERROR;
 		break;
 
