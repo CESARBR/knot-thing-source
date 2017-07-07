@@ -53,17 +53,15 @@
 /* Retransmission timeout in ms */
 #define RETRANSMISSION_TIMEOUT				20000
 
-static uint8_t enable_run = 0, schema_sensor_id = 0;
+static struct nrf24_mac addr;
+static unsigned long clear_time;
+static uint32_t last_timeout;
 static char device_name = NULL;
 static int sock = -1;
 static int cli_sock = -1;
-static struct nrf24_mac addr;
 static bool schema_flag = false;
+static uint8_t enable_run = 0, schema_sensor_id = 0;
 
-/* Led status control variables */
-static uint32_t previous_status_time = 0;
-static uint8_t nblink, led_state, previous_led_state = LOW;
-static uint16_t status_interval;
 
 /*
  * FIXME: Thing address should be received via NFC
@@ -79,9 +77,6 @@ static void set_nrf24MAC(void)
 	hal_storage_write_end(HAL_STORAGE_ID_MAC, &addr,
 						sizeof(struct nrf24_mac));
 }
-
-static unsigned long time;
-static uint32_t last_timeout;
 
 int knot_thing_protocol_init(const char *thing_name)
 {
@@ -114,7 +109,7 @@ int knot_thing_protocol_init(const char *thing_name)
 	if (sock < 0)
 		return -1;
 
-	time = 0;
+	clear_time = 0;
 	enable_run = 1;
 	last_timeout = 0;
 
@@ -134,6 +129,9 @@ void knot_thing_protocol_exit(void)
  */
 static void led_status(uint8_t status)
 {
+	static uint32_t previous_status_time = 0;
+	static uint16_t status_interval;
+	static uint8_t nblink, led_state, previous_led_state = LOW;
 	uint32_t current_status_time = hal_time_ms();
 
 	/*
@@ -370,16 +368,16 @@ static int clear_data(void)
 	unsigned long current_time;
 
 	if (!hal_gpio_digital_read(CLEAR_EEPROM_PIN)) {
-		if(time == 0)
-			time = hal_time_ms();
+		if(clear_time == 0)
+			clear_time = hal_time_ms();
 		current_time = hal_time_ms();
-		if ((current_time - time) >= 5000)
+		if ((current_time - clear_time) >= 5000)
 			return 1;
 
 		return 0;
 	}
 
-	time = 0;
+	clear_time = 0;
 	current_time = 0;
 
 	return 0;
