@@ -54,7 +54,7 @@
 #define RETRANSMISSION_TIMEOUT				20000
 
 static uint8_t enable_run = 0, schema_sensor_id = 0;
-static char device_name[KNOT_PROTOCOL_DEVICE_NAME_LEN];
+static char device_name = NULL;
 static int sock = -1;
 static int cli_sock = -1;
 static struct nrf24_mac addr;
@@ -85,11 +85,15 @@ static uint32_t last_timeout;
 
 int knot_thing_protocol_init(const char *thing_name)
 {
-	uint8_t len;
 	char macString[25] = {0};
 
 	hal_gpio_pin_mode(PIN_LED_STATUS, OUTPUT);
 	hal_gpio_pin_mode(CLEAR_EEPROM_PIN, INPUT_PULLUP);
+
+	if (thing_name == NULL)
+		return -1;
+
+	device_name = thing_name;
 
 	/* Set mac address if it's invalid on eeprom */
 	hal_storage_read_end(HAL_STORAGE_ID_MAC, &addr,
@@ -110,10 +114,6 @@ int knot_thing_protocol_init(const char *thing_name)
 	if (sock < 0)
 		return -1;
 
-	memset(device_name, 0, sizeof(device_name));
-
-	len = MIN(strlen(thing_name), sizeof(device_name) - 1);
-	strncpy(device_name, thing_name, len);
 	time = 0;
 	enable_run = 1;
 	last_timeout = 0;
