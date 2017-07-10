@@ -57,7 +57,7 @@ static knot_msg msg;
 static struct nrf24_mac addr;
 static unsigned long clear_time;
 static uint32_t last_timeout;
-static char device_name = NULL;
+static char *device_name = NULL;
 static int sock = -1;
 static int cli_sock = -1;
 static bool schema_flag = false;
