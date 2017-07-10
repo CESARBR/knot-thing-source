@@ -296,7 +296,7 @@ static int get_data(uint8_t sensor_id)
 
 static inline int is_uuid(const char *string)
 {
-	return (strlen(string) == KNOT_PROTOCOL_UUID_LEN && string[8] == '-' &&
+	return (string != NULL && string[8] == '-' &&
 		string[13] == '-' && string[18] == '-' && string[23] == '-');
 }
 
