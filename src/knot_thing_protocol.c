@@ -510,7 +510,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				break;
 
 			case KNOT_MSG_DATA_RESP:
-				if (msg.action.result == 0)
+				if (msg.action.result != KNOT_SUCCESS)
 					substate = STATE_ERROR;
 				break;
 
