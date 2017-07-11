@@ -101,7 +101,8 @@ int knot_thing_protocol_init(const char *thing_name)
 	}
 	nrf24_mac2str(&addr, macString);
 
-	hal_log_info("MAC: %s", macString);
+	hal_log_str("MAC ADDR");
+	hal_log_str(macString);
 
 	if (hal_comm_init("NRF0", &addr) < 0)
 		return -1;
