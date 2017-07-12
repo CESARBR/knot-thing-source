@@ -89,7 +89,7 @@ int knot_thing_protocol_init(const char *thing_name)
 	if (thing_name == NULL)
 		return -1;
 
-	device_name = thing_name;
+	device_name = (char *)thing_name;
 
 	/* Set mac address if it's invalid on eeprom */
 	hal_storage_read_end(HAL_STORAGE_ID_MAC, &addr,
@@ -354,7 +354,6 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 {
 	static uint8_t	substate = STATE_SETUP,
 			previous_state = STATE_DISCONNECTED;
-	ssize_t ilen;
 	int8_t retval;
 
 	if (breset)
@@ -498,7 +497,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 			/* There is config or set data */
 			switch (msg.hdr.type) {
 			case KNOT_MSG_SET_CONFIG:
-				set_config(&msg.config);
+				set_config(msg.config.sensor_id);
 				break;
 
 			case KNOT_MSG_SET_DATA:
@@ -506,7 +505,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				break;
 
 			case KNOT_MSG_GET_DATA:
-				get_data(&msg.item.sensor_id);
+				get_data(msg.item.sensor_id);
 				break;
 
 			case KNOT_MSG_DATA_RESP:
