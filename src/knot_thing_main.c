@@ -280,9 +280,6 @@ int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg)
 
 int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 {
-	uint8_t len, uint8_val = 0, uint8_buffer[KNOT_DATA_RAW_SIZE];
-	int32_t int32_val = 0, multiplier = 0;
-	uint32_t uint32_val = 0;
 	struct _data_items *item;
 
 	item = find_item(id);
@@ -294,49 +291,46 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 		if (item->functions.raw_f.read == NULL)
 			return -1;
 
-		if (item->functions.raw_f.read(uint8_buffer, &uint8_val) < 0)
+		if (item->functions.raw_f.read(data->payload.raw, 
+				&(data->hdr.payload_len)) < 0)
 			return -1;
 
-		len = uint8_val;
-		memcpy(data->payload.raw, uint8_buffer, len);
-		data->hdr.payload_len = len + sizeof(data->sensor_id);
+		data->hdr.payload_len += sizeof(data->sensor_id);
 		break;
 	case KNOT_VALUE_TYPE_BOOL:
 		if (item->functions.bool_f.read == NULL)
 			return -1;
 
-		if (item->functions.bool_f.read(&uint8_val) < 0)
+		if (item->functions.bool_f.read(&(data->payload.values.val_b)) < 0)
 			return -1;
 
-		len = sizeof(data->payload.values.val_b);
-		data->payload.values.val_b = uint8_val;
-		data->hdr.payload_len = len + sizeof(data->sensor_id);
+		data->hdr.payload_len = sizeof(knot_value_type_bool) 
+					+ sizeof(data->sensor_id);
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		if (item->functions.int_f.read == NULL)
 			return -1;
 
-		if (item->functions.int_f.read(&int32_val, &multiplier) < 0)
+		if (item->functions.int_f.read(
+			&(data->payload.values.val_i.value),
+			 &(data->payload.values.val_i.multiplier)) < 0)
 			return -1;
 
-		len = sizeof(data->payload.values.val_i);
-		data->payload.values.val_i.value = int32_val;
-		data->payload.values.val_i.multiplier = multiplier;
-		data->hdr.payload_len = len + sizeof(data->sensor_id);
+		data->hdr.payload_len = sizeof(knot_value_type_int) 
+					+ sizeof(data->sensor_id);
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		if (item->functions.float_f.read == NULL)
 			return -1;
 
-		if (item->functions.float_f.read(&int32_val, &uint32_val,
-							&multiplier) < 0)
+		if (item->functions.float_f.read(
+			&(data->payload.values.val_f.value_int), 
+			&(data->payload.values.val_f.value_dec),
+			&(data->payload.values.val_f.multiplier)) < 0)
 			return -1;
 
-		len = sizeof(data->payload.values.val_f);
-		data->payload.values.val_f.value_int = int32_val;
-		data->payload.values.val_f.value_dec = uint32_val;
-		data->payload.values.val_f.multiplier = multiplier;
-		data->hdr.payload_len = len + sizeof(data->sensor_id);
+		data->hdr.payload_len = sizeof(knot_value_type_float) 
+					+ sizeof(data->sensor_id);
 		break;
 	default:
 		return -1;
@@ -418,6 +412,9 @@ int knot_thing_verify_events(knot_msg_data *data)
 	if (item->id == 0)
 		goto none;
 
+	data->hdr.type = KNOT_MSG_DATA;
+	data->sensor_id = item->id;
+
 	if (knot_thing_data_item_read(item->id, data) < 0)
 		goto none;
 
@@ -428,9 +425,6 @@ int knot_thing_verify_events(knot_msg_data *data)
 	case KNOT_VALUE_TYPE_RAW:
 
 		if (item->last_value_raw == NULL)
-			goto none;
-
-		if (data->hdr.payload_len != KNOT_DATA_RAW_SIZE)
 			goto none;
 
 		if (memcmp(item->last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE) == 0)
@@ -510,9 +504,6 @@ int knot_thing_verify_events(knot_msg_data *data)
 		item->last_timeout = current_time;
 		comparison |= (KNOT_EVT_FLAG_TIME & item->config.event_flags);
 	}
-
-	data->hdr.type = KNOT_MSG_DATA;
-	data->sensor_id = item->id;
 
 none:
 	/* Wrap or increment to the next item */
