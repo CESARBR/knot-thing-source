@@ -12,18 +12,18 @@
 
 #ifdef ARDUINO
 #include <Arduino.h>
+#include <hal/avr_errno.h>
+#include <hal/avr_unistd.h>
+#include <hal/avr_log.h>
 #define CLEAR_EEPROM_PIN 7
 #define PIN_LED_STATUS   6 //LED used to show thing status
 #endif
 
-#include <hal/avr_errno.h>
-#include <hal/avr_unistd.h>
 #include <hal/storage.h>
 #include <hal/nrf24.h>
 #include <hal/comm.h>
 #include <hal/gpio.h>
 #include <hal/time.h>
-#include <hal/avr_log.h>
 #include "knot_thing_protocol.h"
 #include "knot_thing_main.h"
 
