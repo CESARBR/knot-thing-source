@@ -471,7 +471,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
 				break;
 			if (msg.action.result != KNOT_SUCCESS) {
-				substate = STATE_ERROR;
+				substate = STATE_SCHEMA;
 				break;
 			}
 			if (msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
@@ -511,7 +511,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 
 			case KNOT_MSG_DATA_RESP:
 				if (msg.action.result != KNOT_SUCCESS)
-					substate = STATE_ERROR;
+					get_data(msg.item.sensor_id);
 				break;
 
 			default:
@@ -523,7 +523,8 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		if (knot_thing_verify_events(&(msg.data)) == 0)
 			if (hal_comm_write(cli_sock, &(msg.buffer),
 			sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
-				substate = STATE_ERROR;
+				hal_comm_write(cli_sock, &(msg.buffer),
+					sizeof(msg.hdr) + msg.hdr.payload_len);
 		break;
 
 	case STATE_ERROR:
@@ -548,8 +549,6 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		return STATE_DISCONNECTED;
 
 	default:
-		//TODO: log invalid state
-		//TODO: close connection if needed
 		return STATE_DISCONNECTED;
 	}
 	return STATE_CONNECTED;
@@ -579,6 +578,7 @@ int knot_thing_protocol_run(void)
 	case STATE_DISCONNECTED:
 		/* Internally listen starts broadcasting presence*/
 		led_status(STATE_DISCONNECTED);
+		hal_comm_close(cli_sock);
 		if (hal_comm_listen(sock) < 0) {
 			break;
 		}
@@ -607,8 +607,7 @@ int knot_thing_protocol_run(void)
 		break;
 
 	default:
-		/* TODO: log invalid state */
-		/* TODO: close connection if needed */
+		hal_comm_close(cli_sock);
 		run_state = STATE_DISCONNECTED;
 		break;
 	}
