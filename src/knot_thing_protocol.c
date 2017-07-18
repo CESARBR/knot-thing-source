@@ -6,6 +6,10 @@
  * of the BSD license. See the LICENSE file for details.
  *
  */
+
+/* Flag to enable debug logs via Serial */
+#define KNOT_DEBUG_ENABLED 0
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -101,7 +105,7 @@ int knot_thing_protocol_init(const char *thing_name)
 	}
 	nrf24_mac2str(&addr, macString);
 
-	hal_log_str("MAC ADDR");
+	hal_log_str("MAC");
 	hal_log_str(macString);
 
 	if (hal_comm_init("NRF0", &addr) < 0)
@@ -375,6 +379,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		 * the auth request, otherwise register request
 		 */
 		led_status(STATE_SETUP);
+		hal_log_str("STP");
 		hal_storage_read_end(HAL_STORAGE_ID_UUID, &(msg.auth.uuid),
 					KNOT_PROTOCOL_UUID_LEN);
 		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, &(msg.auth.token),
@@ -382,6 +387,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 
 		if (is_uuid(msg.auth.uuid)) {
 			substate = STATE_AUTHENTICATING;
+			hal_log_str("AUTH");
 			msg.hdr.type = KNOT_MSG_AUTH_REQ;
 			msg.hdr.payload_len = KNOT_PROTOCOL_UUID_LEN + 
 						KNOT_PROTOCOL_TOKEN_LEN;
@@ -390,6 +396,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 				substate = STATE_ERROR;
 		} else {
+			hal_log_str("REG");
 			substate = STATE_REGISTERING;
 			if (send_register() < 0)
 				substate = STATE_ERROR;
@@ -406,6 +413,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		retval = read_auth();
 		if (!retval) {
 			substate = STATE_ONLINE;
+			hal_log_str("ONLN");
 			/* Checks if all the schemas were sent to the GW and */
 			hal_storage_read_end(HAL_STORAGE_ID_SCHEMA_FLAG,
 					&schema_flag, sizeof(schema_flag));
@@ -438,6 +446,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 */
 	case STATE_SCHEMA:
 		led_status(STATE_SCHEMA);
+		hal_log_str("SCH");
 		retval = send_schema();
 		switch (retval) {
 		case KNOT_SUCCESS:
@@ -466,6 +475,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 	 */
 	case STATE_SCHEMA_RESP:
 		led_status(STATE_SCHEMA_RESP);
+		hal_log_str("SCH_R");
 		if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) > 0) {
 			if (msg.hdr.type != KNOT_MSG_SCHEMA_RESP &&
 				msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
@@ -484,6 +494,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 			hal_storage_write_end(HAL_STORAGE_ID_SCHEMA_FLAG,
 					&schema_flag, sizeof(schema_flag));
 			substate = STATE_ONLINE;
+			hal_log_str("ONLN");
 			schema_sensor_id = 0;
 		} else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
@@ -510,8 +521,11 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 				break;
 
 			case KNOT_MSG_DATA_RESP:
-				if (msg.action.result != KNOT_SUCCESS)
+				hal_log_str("DT RSP");
+				if (msg.action.result != KNOT_SUCCESS) {
+					hal_log_str("DT R ERR");
 					get_data(msg.item.sensor_id);
+				}
 				break;
 
 			default:
@@ -520,17 +534,23 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 			}
 		}
 		/* If some event ocurred send msg_data */
-		if (knot_thing_verify_events(&(msg.data)) == 0)
+		if (knot_thing_verify_events(&(msg.data)) == 0) {
 			if (hal_comm_write(cli_sock, &(msg.buffer),
-			sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
+			sizeof(msg.hdr) + msg.hdr.payload_len) < 0) {
+				hal_log_str("DT ERR");
 				hal_comm_write(cli_sock, &(msg.buffer),
 					sizeof(msg.hdr) + msg.hdr.payload_len);
+			} else {
+				hal_log_str("DT");
+			}
+		}
 		break;
 
 	case STATE_ERROR:
 		//TODO: close connection if needed
 		//TODO: wait 1s
 		led_status(STATE_ERROR);
+		hal_log_str("ERR");
 		switch (previous_state) {
 		case STATE_CONNECTING:
 			break;
@@ -549,6 +569,7 @@ static uint8_t knot_thing_protocol_connected(bool breset)
 		return STATE_DISCONNECTED;
 
 	default:
+		hal_log_str("INV");
 		return STATE_DISCONNECTED;
 	}
 	return STATE_CONNECTED;
@@ -579,11 +600,13 @@ int knot_thing_protocol_run(void)
 		/* Internally listen starts broadcasting presence*/
 		led_status(STATE_DISCONNECTED);
 		hal_comm_close(cli_sock);
+		hal_log_str("DISC");
 		if (hal_comm_listen(sock) < 0) {
 			break;
 		}
 
 		run_state = STATE_CONNECTING;
+		hal_log_str("CONN");
 		break;
 
 	case STATE_CONNECTING:
@@ -607,6 +630,7 @@ int knot_thing_protocol_run(void)
 		break;
 
 	default:
+		hal_log_str("INV");
 		hal_comm_close(cli_sock);
 		run_state = STATE_DISCONNECTED;
 		break;
