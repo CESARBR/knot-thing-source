@@ -166,9 +166,10 @@ int8_t knot_thing_register_data_item(uint8_t id, const char *name,
 	item->type_id					= type_id;
 	item->unit					= unit;
 	item->value_type				= value_type;
-	// TODO: load flags and limits from persistent storage
-	/* Remove KNOT_EVT_FLAG_UNREGISTERED flag */
-	item->config.event_flags			= KNOT_EVT_FLAG_NONE;
+
+	/* Set default config */
+	item->config.event_flags			= KNOT_EVT_FLAG_TIME;
+	item->config.time_sec 				= 30;
 	/* As "last_data" is a union, we need just to set the "biggest" member */
 	item->last_data.val_f.multiplier		= 1;
 	item->last_data.val_f.value_int			= 0;
