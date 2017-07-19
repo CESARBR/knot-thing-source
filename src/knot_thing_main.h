@@ -63,11 +63,6 @@ int8_t knot_thing_register_raw_data_item(uint8_t sensor_id, const char *name,
 int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name, uint16_t type_id,
 	uint8_t value_type, uint8_t unit, knot_data_functions *func);
 
-
-int8_t knot_thing_register_config_item(uint8_t sensor_id, uint8_t event_flags,
-	uint16_t time_sec, int32_t upper_int, uint32_t upper_dec,
-	int32_t lower_int, uint32_t lower_dec);
-
 int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg);
 int knot_thing_data_item_read(uint8_t id, knot_msg_data *data);
 int knot_thing_data_item_write(uint8_t id, knot_msg_data *data);
