@@ -197,7 +197,10 @@ int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
 {
 	struct _data_items *item = find_item(id);
 
-	/* FIXME: Check if config is valid */
+	/*Check if config is valid*/
+	if (knot_config_is_valid(evflags, time_sec, lower, upper)
+								!= KNOT_SUCCESS)
+		return -1;
 
 	if (!item)
 		return -1;
@@ -215,9 +218,6 @@ int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
 
 	if (upper)
 		memcpy(&(item->config.upper_limit), upper, sizeof(*upper));
-
-	// TODO: store flags and limits on persistent storage
-
 
 	return 0;
 }
