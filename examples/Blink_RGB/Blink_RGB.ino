@@ -7,6 +7,12 @@
  *
  */
 
+/*
+ * The default behavior for a Thing is to send data every 30 seconds.
+ * To change its behavior on the firmware side, use the function
+ * registerDefaultConfig(). See the documentation and lib examples.
+ */
+
 #include <KNoTThing.h>
 
 #define RED_LED_PIN         3
@@ -112,11 +118,7 @@ void setup()
         KNOT_UNIT_LUMINOSITY_LM, blue_read, blue_write);
     Serial.println(F("RGB LED KNoT Demo"));
 
-    thing.registerDefaultConfig(RED_LED_ID);
 
-    thing.registerDefaultConfig(GREEN_LED_ID);
-
-    thing.registerDefaultConfig(BLUE_LED_ID);
 
 }
 

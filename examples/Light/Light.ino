@@ -7,6 +7,12 @@
  *
  */
 
+/*
+ * The default behavior for a Thing is to send data every 30 seconds.
+ * To change its behavior on the firmware side, use the function
+ * registerDefaultConfig(). See the documentation and lib examples.
+ */
+
 #include <KNoTThing.h>
 
 #define LIGHT_BULB_PIN      2
@@ -48,7 +54,8 @@ void setup()
     thing.registerBoolData(LIGHT_BULB_NAME, LIGHT_BULB_ID, KNOT_TYPE_ID_SWITCH,
         KNOT_UNIT_NOT_APPLICABLE, light_read, light_write);
 
-    thing.registerDefaultConfig(LIGHT_BULB_ID);
+    /* Send data every 10 seconds*/
+    thing.registerDefaultConfig(LIGHT_BULB_ID, KNOT_EVT_FLAG_TIME, 10, 0, 0, 0, 0);
 
     Serial.println(F("Remote Light Bulb KNoT Demo"));
 }

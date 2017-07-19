@@ -7,6 +7,12 @@
  *
  */
 
+/*
+ * The default behavior for a Thing is to send data every 30 seconds.
+ * To change its behavior on the firmware side, use the function
+ * registerDefaultConfig(). See the documentation and lib examples.
+ */
+
 #include <KNoTThing.h>
 
 #define SPEED_SENSOR_ID     3
@@ -44,7 +50,6 @@ void setup()
 
     thing.init("Speed");
     thing.registerIntData(SPEED_SENSOR_NAME, SPEED_SENSOR_ID, KNOT_TYPE_ID_SPEED, KNOT_UNIT_SPEED_MS, speed_read, speed_write);
-    thing.registerDefaultConfig(SPEED_SENSOR_ID);
 
     Serial.println(F("Speed Sensor KNoT Demo"));
 }

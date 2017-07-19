@@ -7,6 +7,12 @@
  *
  */
 
+/*
+ * The default behavior for a Thing is to send data every 30 seconds.
+ * To change its behavior on the firmware side, use the function
+ * registerDefaultConfig(). See the documentation and lib examples.
+ */
+
 #include <KNoTThing.h>
 
 #define BEAM_SENSOR_1_ID      1
@@ -50,9 +56,10 @@ void setup()
 			KNOT_TYPE_ID_PRESENCE, KNOT_UNIT_NOT_APPLICABLE,
 			beam_read_2, NULL);
 
-	thing.registerDefaultConfig(BEAM_SENSOR_1_ID);
+	/*Every time the Beam sensor changes its value, it send data*/
+	thing.registerDefaultConfig(BEAM_SENSOR_1_ID, KNOT_EVT_FLAG_CHANGE, 0, 0, 0, 0, 0);
 
-	thing.registerDefaultConfig(BEAM_SENSOR_2_ID);
+	thing.registerDefaultConfig(BEAM_SENSOR_2_ID, KNOT_EVT_FLAG_CHANGE, 0, 0, 0, 0, 0);
 
 	Serial.println(F("Beam Sensor KNoT Demo"));
 }

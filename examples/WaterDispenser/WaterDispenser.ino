@@ -7,6 +7,12 @@
  *
  */
 
+/*
+ * The default behavior for a Thing is to send data every 30 seconds.
+ * To change its behavior on the firmware side, use the function
+ * registerDefaultConfig(). See the documentation and lib examples.
+ */
+
 #include <KNoTThing.h>
 #include "HX711.h"
 #include <EEPROM.h>
@@ -120,7 +126,9 @@ void setup(void)
     thing.init("KNoTThing");
     thing.registerIntData(SCALE_NAME, SCALE_ID, KNOT_TYPE_ID_MASS,
                     KNOT_UNIT_MASS_G, scale_read, scale_write);
-    thing.registerDefaultConfig(SCALE_ID);
+
+    /*Send data when value is less than 1000*/
+    thing.registerDefaultConfig(SCALE_ID, KNOT_EVT_FLAG_LOWER_THRESHOLD, 0, 0, 0, 1000, 0);
 
     /* Read offset from EEPROM */
     EEPROM.get(OFFSET_ADDR, offset);
