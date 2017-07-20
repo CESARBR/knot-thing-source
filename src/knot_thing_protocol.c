@@ -30,17 +30,18 @@
 #include <hal/time.h>
 #include "knot_thing_protocol.h"
 #include "knot_thing_main.h"
+#include "knot_thing_config.h"
 
 /* KNoT protocol client states */
 #define STATE_DISCONNECTED		0
-#define STATE_CONNECTING		1
+#define STATE_ACCEPTING			1
 #define STATE_CONNECTED			2
-#define STATE_SETUP			3
-#define STATE_AUTHENTICATING		4
-#define STATE_REGISTERING		5
-#define STATE_SCHEMA			6
-#define STATE_SCHEMA_RESP		7
-#define STATE_ONLINE			8
+#define STATE_AUTHENTICATING		3
+#define STATE_REGISTERING		4
+#define STATE_SCHEMA			5
+#define STATE_SCHEMA_RESP		6
+#define STATE_ONLINE			7
+#define STATE_RUNNING			8
 #define STATE_ERROR			9
 
 /* Intervals for LED blinking */
@@ -65,7 +66,7 @@ static char *device_name = NULL;
 static int sock = -1;
 static int cli_sock = -1;
 static bool schema_flag = false;
-static uint8_t enable_run = 0, schema_sensor_id = 0;
+static uint8_t enable_run = 0, msg_sensor_id = 0;
 
 
 /*
@@ -230,7 +231,7 @@ static int send_schema(void)
 {
 	int8_t err;
 
-	err = knot_thing_create_schema(schema_sensor_id, &(msg.schema));
+	err = knot_thing_create_schema(msg_sensor_id, &(msg.schema));
 
 	if (err < 0)
 		return err;
@@ -352,237 +353,51 @@ static int8_t mgmt_read(void)
 	switch (mhdr->opcode) {
 
 	case MGMT_EVT_NRF24_DISCONNECTED:
-		hal_comm_close(cli_sock);
 		return 0;
 	}
 
 	return -1;
 }
 
-static uint8_t knot_thing_protocol_connected(bool breset)
+static void read_online_messages(void) 
 {
-	static uint8_t	substate = STATE_SETUP,
-			previous_state = STATE_DISCONNECTED;
-	int8_t retval;
-
-	if (breset)
-		substate = STATE_SETUP;
-
-	if (substate != STATE_ERROR) {
-		if (mgmt_read() == 0)
-			return STATE_DISCONNECTED;
-
-		previous_state = substate;
-	}
-
-	/* Network message handling state machine */
-	switch (substate) {
-	case STATE_SETUP:
-		/*
-		 * If uuid/token were found, read the addresses and send
-		 * the auth request, otherwise register request
-		 */
-		led_status(STATE_SETUP);
-		hal_log_str("STP");
-		hal_storage_read_end(HAL_STORAGE_ID_UUID, &(msg.auth.uuid),
-					KNOT_PROTOCOL_UUID_LEN);
-		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, &(msg.auth.token),
-				KNOT_PROTOCOL_TOKEN_LEN);
-
-		if (is_uuid(msg.auth.uuid)) {
-			substate = STATE_AUTHENTICATING;
-			hal_log_str("AUTH");
-			msg.hdr.type = KNOT_MSG_AUTH_REQ;
-			msg.hdr.payload_len = KNOT_PROTOCOL_UUID_LEN + 
-						KNOT_PROTOCOL_TOKEN_LEN;
-
-			if (hal_comm_write(cli_sock, &(msg.buffer), 
-				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
-				substate = STATE_ERROR;
-		} else {
-			hal_log_str("REG");
-			substate = STATE_REGISTERING;
-			if (send_register() < 0)
-				substate = STATE_ERROR;
-		}
-		last_timeout = hal_time_ms();
-		break;
-	/*
-	 * Authenticating, Resgistering cases waits (without blocking)
-	 * for an response of the respective requests, -EAGAIN means there was
-	 * nothing to read so we ignore it, less then 0 an error and 0 success
-	 */
-	case STATE_AUTHENTICATING:
-		led_status(STATE_AUTHENTICATING);
-		retval = read_auth();
-		if (!retval) {
-			substate = STATE_ONLINE;
-			hal_log_str("ONLN");
-			/* Checks if all the schemas were sent to the GW and */
-			hal_storage_read_end(HAL_STORAGE_ID_SCHEMA_FLAG,
-					&schema_flag, sizeof(schema_flag));
-			if (!schema_flag)
-				substate = STATE_SCHEMA;
-		}
-		else if (retval != -EAGAIN)
-			substate = STATE_ERROR;
-		else if (hal_timeout(hal_time_ms(), last_timeout,
-						RETRANSMISSION_TIMEOUT) > 0)
-			substate = STATE_SETUP;
-		break;
-
-	case STATE_REGISTERING:
-		led_status(STATE_REGISTERING);
-		retval = read_register();
-		if (!retval)
-			substate = STATE_SCHEMA;
-		else if (retval != -EAGAIN)
-			substate = STATE_ERROR;
-		else if (hal_timeout(hal_time_ms(), last_timeout,
-						RETRANSMISSION_TIMEOUT) > 0)
-			substate = STATE_SETUP;
-		break;
-	/*
-	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
-	 * wait for the ack of this schema. If there is no schema for that
-	 * schema_sensor_id, increments and stays in the STATE_SCHEMA. If an
-	 * error occurs, goes to STATE_ERROR.
-	 */
-	case STATE_SCHEMA:
-		led_status(STATE_SCHEMA);
-		hal_log_str("SCH");
-		retval = send_schema();
-		switch (retval) {
-		case KNOT_SUCCESS:
-			last_timeout = hal_time_ms();
-			substate = STATE_SCHEMA_RESP;
+	if (hal_comm_read(cli_sock, &(msg.buffer), 
+					KNOT_MSG_SIZE) > 0) {
+		/* There is a message to read */
+		switch (msg.hdr.type) {
+		case KNOT_MSG_SET_CONFIG:
+			set_config(msg.config.sensor_id);
 			break;
-		case KNOT_ERROR_UNKNOWN:
-			substate = STATE_ERROR;
-			break;
-		case KNOT_SCHEMA_EMPTY:
-		case KNOT_INVALID_DEVICE:
-			substate = STATE_SCHEMA;
-			schema_sensor_id++;
-			break;
-		default:
-			substate = STATE_ERROR;
-			break;
-		}
-		break;
 
-	/*
-	 * Receives the ack from the GW and returns to STATE_SCHEMA to send the
-	 * next schema. If it was the ack for the last schema, goes to
-	 * STATE_ONLINE. If it is not a KNOT_MSG_SCHEMA_RESP, ignores. If the
-	 * result was not KNOT_SUCCESS, goes to STATE_ERROR.
-	 */
-	case STATE_SCHEMA_RESP:
-		led_status(STATE_SCHEMA_RESP);
-		hal_log_str("SCH_R");
-		if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) > 0) {
-			if (msg.hdr.type != KNOT_MSG_SCHEMA_RESP &&
-				msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
-				break;
+		case KNOT_MSG_SET_DATA:
+			set_data(msg.data.sensor_id);
+			break;
+
+		case KNOT_MSG_GET_DATA:
+			get_data(msg.item.sensor_id);
+			break;
+
+		case KNOT_MSG_DATA_RESP:
+			hal_log_str("DT RSP");
 			if (msg.action.result != KNOT_SUCCESS) {
-				substate = STATE_SCHEMA;
-				break;
-			}
-			if (msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
-				substate = STATE_SCHEMA;
-				schema_sensor_id++;
-				break;
-			}
-			/* All the schemas were sent to GW */
-			schema_flag = true;
-			hal_storage_write_end(HAL_STORAGE_ID_SCHEMA_FLAG,
-					&schema_flag, sizeof(schema_flag));
-			substate = STATE_ONLINE;
-			hal_log_str("ONLN");
-			schema_sensor_id = 0;
-		} else if (hal_timeout(hal_time_ms(), last_timeout,
-						RETRANSMISSION_TIMEOUT) > 0)
-			substate = STATE_SCHEMA;
-		break;
-
-	case STATE_ONLINE:
-		led_status(STATE_ONLINE);
-
-		if (hal_comm_read(cli_sock, &(msg.buffer), 
-						KNOT_MSG_SIZE) > 0) {
-			/* There is config or set data */
-			switch (msg.hdr.type) {
-			case KNOT_MSG_SET_CONFIG:
-				set_config(msg.config.sensor_id);
-				break;
-
-			case KNOT_MSG_SET_DATA:
-				set_data(msg.data.sensor_id);
-				break;
-
-			case KNOT_MSG_GET_DATA:
+				hal_log_str("DT R ERR");
 				get_data(msg.item.sensor_id);
-				break;
-
-			case KNOT_MSG_DATA_RESP:
-				hal_log_str("DT RSP");
-				if (msg.action.result != KNOT_SUCCESS) {
-					hal_log_str("DT R ERR");
-					get_data(msg.item.sensor_id);
-				}
-				break;
-
-			default:
-				/* Invalid command */
-				break;
 			}
-		}
-		/* If some event ocurred send msg_data */
-		if (knot_thing_verify_events(&(msg.data)) == 0) {
-			if (hal_comm_write(cli_sock, &(msg.buffer),
-			sizeof(msg.hdr) + msg.hdr.payload_len) < 0) {
-				hal_log_str("DT ERR");
-				hal_comm_write(cli_sock, &(msg.buffer),
-					sizeof(msg.hdr) + msg.hdr.payload_len);
-			} else {
-				hal_log_str("DT");
-			}
-		}
-		break;
+			break;
 
-	case STATE_ERROR:
-		//TODO: close connection if needed
-		//TODO: wait 1s
-		led_status(STATE_ERROR);
-		hal_log_str("ERR");
-		switch (previous_state) {
-		case STATE_CONNECTING:
-			break;
-		case STATE_AUTHENTICATING:
-			break;
-		case STATE_REGISTERING:
-			break;
-		case STATE_SCHEMA:
-			break;
-		case STATE_SCHEMA_RESP:
-			break;
-		case STATE_ONLINE:
+		default:
+			/* Invalid command, ignore */
 			break;
 		}
-		previous_state = STATE_DISCONNECTED;
-		return STATE_DISCONNECTED;
-
-	default:
-		hal_log_str("INV");
-		return STATE_DISCONNECTED;
 	}
-	return STATE_CONNECTED;
 }
 
 int knot_thing_protocol_run(void)
 {
 	static uint8_t	run_state = STATE_DISCONNECTED;
+
 	struct nrf24_mac peer;
+	int8_t retval;
 
 	/*
 	 * Verifies if the button for eeprom clear is pressed for more than 5s
@@ -608,6 +423,10 @@ int knot_thing_protocol_run(void)
 		return -1;
 	}
 
+	if (run_state != STATE_ERROR)
+		if (mgmt_read() == 0)
+			run_state = STATE_DISCONNECTED;
+
 	/* Network message handling state machine */
 	switch (run_state) {
 	case STATE_DISCONNECTED:
@@ -619,16 +438,16 @@ int knot_thing_protocol_run(void)
 			break;
 		}
 
-		run_state = STATE_CONNECTING;
-		hal_log_str("CONN");
+		run_state = STATE_ACCEPTING;
+		hal_log_str("ACCT");
 		break;
 
-	case STATE_CONNECTING:
+	case STATE_ACCEPTING:
 		/*
 		 * Try to accept GW connection request. EAGAIN means keep
 		 * waiting, less then 0 means error and greater then 0 success
 		 */
-		led_status(STATE_CONNECTING);
+		led_status(STATE_ACCEPTING);
 		cli_sock = hal_comm_accept(sock, (void *) &peer);
 		if (cli_sock == -EAGAIN)
 			break;
@@ -636,16 +455,179 @@ int knot_thing_protocol_run(void)
 			run_state = STATE_DISCONNECTED;
 			break;
 		}
-		run_state = knot_thing_protocol_connected(true);
+		run_state = STATE_CONNECTED;
+		hal_log_str("CONN");
 		break;
 
 	case STATE_CONNECTED:
-		run_state = knot_thing_protocol_connected(false);
+		/*
+		 * If uuid/token were found, read the addresses and send
+		 * the auth request, otherwise register request
+		 */
+		led_status(STATE_CONNECTED);
+		hal_storage_read_end(HAL_STORAGE_ID_UUID, &(msg.auth.uuid),
+					KNOT_PROTOCOL_UUID_LEN);
+		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, &(msg.auth.token),
+				KNOT_PROTOCOL_TOKEN_LEN);
+
+		if (is_uuid(msg.auth.uuid)) {
+			run_state = STATE_AUTHENTICATING;
+			hal_log_str("AUTH");
+			msg.hdr.type = KNOT_MSG_AUTH_REQ;
+			msg.hdr.payload_len = KNOT_PROTOCOL_UUID_LEN + 
+						KNOT_PROTOCOL_TOKEN_LEN;
+
+			if (hal_comm_write(cli_sock, &(msg.buffer), 
+				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
+				run_state = STATE_ERROR;
+		} else {
+			hal_log_str("REG");
+			run_state = STATE_REGISTERING;
+			if (send_register() < 0)
+				run_state = STATE_ERROR;
+		}
+		last_timeout = hal_time_ms();
+		break;
+
+	/*
+	 * Authenticating, Resgistering cases waits (without blocking)
+	 * for an response of the respective requests, -EAGAIN means there was
+	 * nothing to read so we ignore it, less then 0 an error and 0 success
+	 */
+	case STATE_AUTHENTICATING:
+		led_status(STATE_AUTHENTICATING);
+		retval = read_auth();
+		if (retval == KNOT_SUCCESS) {
+			run_state = STATE_ONLINE;
+			hal_log_str("ONLN");
+			/* Checks if all the schemas were sent to the GW and */
+			hal_storage_read_end(HAL_STORAGE_ID_SCHEMA_FLAG,
+					&schema_flag, sizeof(schema_flag));
+			if (!schema_flag)
+				run_state = STATE_SCHEMA;
+		}
+		else if (retval != -EAGAIN)
+			run_state = STATE_ERROR;
+		else if (hal_timeout(hal_time_ms(), last_timeout,
+						RETRANSMISSION_TIMEOUT) > 0)
+			run_state = STATE_CONNECTED;
+		break;
+
+	case STATE_REGISTERING:
+		led_status(STATE_REGISTERING);
+		retval = read_register();
+		if (!retval)
+			run_state = STATE_SCHEMA;
+		else if (retval != -EAGAIN)
+			run_state = STATE_ERROR;
+		else if (hal_timeout(hal_time_ms(), last_timeout,
+						RETRANSMISSION_TIMEOUT) > 0)
+			run_state = STATE_CONNECTED;
+		break;
+
+	/*
+	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
+	 * wait for the ack of this schema. If there is no schema for that
+	 * msg_sensor_id, increments and stays in the STATE_SCHEMA. If an
+	 * error occurs, goes to STATE_ERROR.
+	 */
+	case STATE_SCHEMA:
+		led_status(STATE_SCHEMA);
+		hal_log_str("SCH");
+		retval = send_schema();
+		switch (retval) {
+		case KNOT_SUCCESS:
+			last_timeout = hal_time_ms();
+			run_state = STATE_SCHEMA_RESP;
+			break;
+		case KNOT_ERROR_UNKNOWN:
+			run_state = STATE_ERROR;
+			break;
+		case KNOT_SCHEMA_EMPTY:
+		case KNOT_INVALID_DEVICE:
+			run_state = STATE_SCHEMA;
+			msg_sensor_id++;
+			break;
+		default:
+			run_state = STATE_ERROR;
+			break;
+		}
+		break;
+
+	/*
+	 * Receives the ack from the GW and returns to STATE_SCHEMA to send the
+	 * next schema. If it was the ack for the last schema, goes to
+	 * STATE_ONLINE. If it is not a KNOT_MSG_SCHEMA_RESP, ignores. If the
+	 * result was not KNOT_SUCCESS, goes to STATE_ERROR.
+	 */
+	case STATE_SCHEMA_RESP:
+		led_status(STATE_SCHEMA_RESP);
+		hal_log_str("SCH_R");
+		if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) > 0) {
+			if (msg.hdr.type != KNOT_MSG_SCHEMA_RESP &&
+				msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
+				break;
+			if (msg.action.result != KNOT_SUCCESS) {
+				run_state = STATE_SCHEMA;
+				break;
+			}
+			if (msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
+				run_state = STATE_SCHEMA;
+				msg_sensor_id++;
+				break;
+			}
+			/* All the schemas were sent to GW */
+			schema_flag = true;
+			hal_storage_write_end(HAL_STORAGE_ID_SCHEMA_FLAG,
+					&schema_flag, sizeof(schema_flag));
+			run_state = STATE_ONLINE;
+			hal_log_str("ONLN");
+			msg_sensor_id = 0;
+		} else if (hal_timeout(hal_time_ms(), last_timeout,
+						RETRANSMISSION_TIMEOUT) > 0)
+			run_state = STATE_SCHEMA;
+		break;
+
+	case STATE_ONLINE:
+		led_status(STATE_ONLINE);
+
+		read_online_messages();
+		msg_sensor_id++;
+		get_data(msg_sensor_id);
+		hal_log_str("DT");
+		if (msg_sensor_id >= KNOT_THING_DATA_MAX) {
+			msg_sensor_id = 0;
+			run_state = STATE_RUNNING;
+			hal_log_str("RUN");
+		}
+		break;
+
+	case STATE_RUNNING:
+		led_status(STATE_RUNNING);
+
+		read_online_messages();
+		/* If some event ocurred send msg_data */
+		if (knot_thing_verify_events(&(msg.data)) == 0) {
+			if (hal_comm_write(cli_sock, &(msg.buffer),
+			sizeof(msg.hdr) + msg.hdr.payload_len) < 0) {
+				hal_log_str("DT ERR");
+				hal_comm_write(cli_sock, &(msg.buffer),
+					sizeof(msg.hdr) + msg.hdr.payload_len);
+			} else {
+				hal_log_str("DT");
+			}
+		}
+		break;
+
+	case STATE_ERROR:
+		led_status(STATE_ERROR);
+		hal_log_str("ERR");
+		run_state = STATE_DISCONNECTED;
+		hal_delay_ms(100);
 		break;
 
 	default:
 		hal_log_str("INV");
-		hal_comm_close(cli_sock);
 		run_state = STATE_DISCONNECTED;
 		break;
 	}
