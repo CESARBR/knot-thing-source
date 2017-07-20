@@ -83,10 +83,31 @@ static void set_nrf24MAC(void)
 						sizeof(struct nrf24_mac));
 }
 
+static int init_connection()
+{
+#if (KNOT_DEBUG_ENABLED == 1)
+	char macString[25] = {0};
+	nrf24_mac2str(&addr, macString);
+
+	hal_log_str("MAC");
+	hal_log_str(macString);
+#endif
+	if (hal_comm_init("NRF0", &addr) < 0)
+		return -1;
+
+	sock = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_RAW);
+	if (sock < 0)
+		return -1;
+
+	clear_time = 0;
+	enable_run = 1;
+	last_timeout = 0;
+
+	return 0;
+}
+
 int knot_thing_protocol_init(const char *thing_name)
 {
-	char macString[25] = {0};
-
 	hal_gpio_pin_mode(PIN_LED_STATUS, OUTPUT);
 	hal_gpio_pin_mode(CLEAR_EEPROM_PIN, INPUT_PULLUP);
 
@@ -103,28 +124,15 @@ int knot_thing_protocol_init(const char *thing_name)
 		hal_storage_reset_end();
 		set_nrf24MAC();
 	}
-	nrf24_mac2str(&addr, macString);
 
-	hal_log_str("MAC");
-	hal_log_str(macString);
-
-	if (hal_comm_init("NRF0", &addr) < 0)
-		return -1;
-
-	sock = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_RAW);
-	if (sock < 0)
-		return -1;
-
-	clear_time = 0;
-	enable_run = 1;
-	last_timeout = 0;
-
-	return 0;
+	return init_connection();
 }
 
 void knot_thing_protocol_exit(void)
 {
+	hal_comm_close(cli_sock);
 	hal_comm_close(sock);
+	hal_comm_deinit();
 	enable_run = 0;
 }
 
@@ -576,18 +584,28 @@ int knot_thing_protocol_run(void)
 	static uint8_t	run_state = STATE_DISCONNECTED;
 	struct nrf24_mac peer;
 
-	if (enable_run == 0) {
-		return -1;
-	}
-
 	/*
 	 * Verifies if the button for eeprom clear is pressed for more than 5s
 	 */
 	if (clear_data()) {
+		/* close connection */
+		knot_thing_protocol_exit();
+
+		/* generate new MAC addr */
 		hal_storage_reset_end();
-		hal_comm_close(cli_sock);
-		run_state = STATE_DISCONNECTED;
 		set_nrf24MAC();
+
+		/* init connection */ 
+		if (init_connection() < 0) {
+			hal_log_str("Error init conn. Halting");
+			while (1);
+		}
+
+		run_state = STATE_DISCONNECTED;
+	}
+
+	if (enable_run == 0) {
+		return -1;
 	}
 
 	/* Network message handling state machine */
