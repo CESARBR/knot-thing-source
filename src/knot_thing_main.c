@@ -224,14 +224,11 @@ int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
 
 int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg)
 {
-	knot_msg_schema entry;
 	struct _data_items *item;
 
 	item = find_item(id);
 	if (item == NULL)
 		return KNOT_INVALID_DEVICE;
-
-	memset(&entry, 0, sizeof(entry));
 
 	msg->hdr.type = KNOT_MSG_SCHEMA;
 
@@ -239,14 +236,12 @@ int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg)
 		return KNOT_INVALID_DEVICE;
 
 	msg->sensor_id = id;
-	entry.values.value_type = item->value_type;
-	entry.values.unit = item->unit;
-	entry.values.type_id = item->type_id;
-	strncpy(entry.values.name, item->name, sizeof(entry.values.name));
+	msg->values.value_type = item->value_type;
+	msg->values.unit = item->unit;
+	msg->values.type_id = item->type_id;
+	strncpy(msg->values.name, item->name, sizeof(msg->values.name));
 
-	msg->hdr.payload_len = sizeof(entry.values) + sizeof(entry.sensor_id);
-
-	memcpy(&msg->values, &entry.values, sizeof(msg->values));
+	msg->hdr.payload_len = sizeof(msg->values) + sizeof(msg->sensor_id);
 
 	/* Send 'end' for the last item (sensor or actuator). */
 	if (data_items[last_item].id == id)
