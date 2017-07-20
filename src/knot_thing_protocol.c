@@ -307,20 +307,16 @@ static inline int is_uuid(const char *string)
 
 static int clear_data(void)
 {
-	unsigned long current_time;
-
 	if (!hal_gpio_digital_read(CLEAR_EEPROM_PIN)) {
 		if(clear_time == 0)
 			clear_time = hal_time_ms();
-		current_time = hal_time_ms();
-		if ((current_time - clear_time) >= 5000)
+		if ((hal_time_ms() - clear_time) >= 5000)
 			return 1;
 
 		return 0;
 	}
 
 	clear_time = 0;
-	current_time = 0;
 
 	return 0;
 }
