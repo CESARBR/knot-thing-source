@@ -8,4 +8,4 @@
  */
 
 /* Use defined: Thing amount of data source/sinks */
-#define KNOT_THING_DATA_MAX		5
+#define KNOT_THING_DATA_MAX		3
