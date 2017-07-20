@@ -471,8 +471,8 @@ int knot_thing_verify_events(knot_msg_data *data)
 	 * If yes, the last timeout value and the comparison variable are updated with the time flag.
 	 */
 	current_time = hal_time_ms();
-	if ((current_time - item->last_timeout) >=
-		(uint32_t) item->config.time_sec * 1000) {
+	if (hal_timeout(current_time, item->last_timeout,
+			(item->config.time_sec * 1000)) > 0) {
 		item->last_timeout = current_time;
 		comparison |= (KNOT_EVT_FLAG_TIME & item->config.event_flags);
 	}
