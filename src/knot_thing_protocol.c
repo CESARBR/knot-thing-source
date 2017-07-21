@@ -48,6 +48,10 @@
 #define LONG_INTERVAL			2500
 #define SHORT_INTERVAL			150
 
+/* Periods for LED blinking in HALT conditions */
+#define NAME_ERROR			50
+#define COMM_ERROR			100
+
 /* KNoT MTU */
 #define MTU 256
 
@@ -83,6 +87,15 @@ static void set_nrf24MAC(void)
 	hal_storage_write_end(HAL_STORAGE_ID_MAC, &addr,
 						sizeof(struct nrf24_mac));
 }
+static void halt_blinking_led(uint32_t period)
+{
+	while(1) {
+		hal_gpio_digital_write(PIN_LED_STATUS, 0);
+		hal_delay_ms(period);
+		hal_gpio_digital_write(PIN_LED_STATUS, 1);
+		hal_delay_ms(period);
+	}
+}
 
 static int init_connection()
 {
@@ -94,11 +107,11 @@ static int init_connection()
 	hal_log_str(macString);
 #endif
 	if (hal_comm_init("NRF0", &addr) < 0)
-		return -1;
+		halt_blinking_led(COMM_ERROR);
 
 	sock = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_RAW);
 	if (sock < 0)
-		return -1;
+		halt_blinking_led(COMM_ERROR);
 
 	clear_time = 0;
 	enable_run = 1;
@@ -112,8 +125,8 @@ int knot_thing_protocol_init(const char *thing_name)
 	hal_gpio_pin_mode(PIN_LED_STATUS, OUTPUT);
 	hal_gpio_pin_mode(CLEAR_EEPROM_PIN, INPUT_PULLUP);
 
-	if (thing_name == NULL)
-		return -1;
+	if (thing_name == NULL) 
+		halt_blinking_led(NAME_ERROR);
 
 	device_name = (char *)thing_name;
 
@@ -411,10 +424,7 @@ int knot_thing_protocol_run(void)
 		set_nrf24MAC();
 
 		/* init connection */ 
-		if (init_connection() < 0) {
-			hal_log_str("Error init conn. Halting");
-			while (1);
-		}
+		init_connection();
 
 		run_state = STATE_DISCONNECTED;
 	}
