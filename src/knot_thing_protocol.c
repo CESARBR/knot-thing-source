@@ -45,8 +45,13 @@
 #define STATE_ERROR			9
 
 /* Intervals for LED blinking */
-#define LONG_INTERVAL			2500
-#define SHORT_INTERVAL			150
+#define LONG_INTERVAL			5000
+#define SHORT_INTERVAL			250
+
+/* Number of times LED is blinking */
+#define BLINK_DISCONNECTED		100
+#define BLINK_STABLISHING		2
+#define BLINK_ONLINE			1
 
 /* Periods for LED blinking in HALT conditions */
 #define NAME_ERROR			50
@@ -151,8 +156,8 @@ void knot_thing_protocol_exit(void)
 }
 
 /*
- * The function receives status of the status machine as a parameter
- * For each state, represented as a number n, the status LED should flash 2 * n
+ * The function receives the number of times LED shall blink.
+ * For each number n, the status LED should flash 2 * n
  * (once to light, another to turn off)
  */
 static void led_status(uint8_t status)
@@ -169,6 +174,7 @@ static void led_status(uint8_t status)
 	if (nblink >= status * 2) {
 		nblink = 0;
 		status_interval = LONG_INTERVAL;
+		hal_gpio_digital_write(PIN_LED_STATUS, 0);
 	}
 
 	/*
@@ -441,7 +447,7 @@ int knot_thing_protocol_run(void)
 	switch (run_state) {
 	case STATE_DISCONNECTED:
 		/* Internally listen starts broadcasting presence*/
-		led_status(STATE_DISCONNECTED);
+		led_status(BLINK_DISCONNECTED);
 		hal_comm_close(cli_sock);
 		hal_log_str("DISC");
 		if (hal_comm_listen(sock) < 0) {
@@ -457,7 +463,7 @@ int knot_thing_protocol_run(void)
 		 * Try to accept GW connection request. EAGAIN means keep
 		 * waiting, less then 0 means error and greater then 0 success
 		 */
-		led_status(STATE_ACCEPTING);
+		led_status(BLINK_DISCONNECTED);
 		cli_sock = hal_comm_accept(sock, (void *) &peer);
 		if (cli_sock == -EAGAIN)
 			break;
@@ -474,7 +480,7 @@ int knot_thing_protocol_run(void)
 		 * If uuid/token were found, read the addresses and send
 		 * the auth request, otherwise register request
 		 */
-		led_status(STATE_CONNECTED);
+		led_status(BLINK_STABLISHING);
 		hal_storage_read_end(HAL_STORAGE_ID_UUID, &(msg.auth.uuid),
 					KNOT_PROTOCOL_UUID_LEN);
 		hal_storage_read_end(HAL_STORAGE_ID_TOKEN, &(msg.auth.token),
@@ -505,7 +511,7 @@ int knot_thing_protocol_run(void)
 	 * nothing to read so we ignore it, less then 0 an error and 0 success
 	 */
 	case STATE_AUTHENTICATING:
-		led_status(STATE_AUTHENTICATING);
+		led_status(BLINK_STABLISHING);
 		retval = read_auth();
 		if (retval == KNOT_SUCCESS) {
 			run_state = STATE_ONLINE;
@@ -524,7 +530,7 @@ int knot_thing_protocol_run(void)
 		break;
 
 	case STATE_REGISTERING:
-		led_status(STATE_REGISTERING);
+		led_status(BLINK_STABLISHING);
 		retval = read_register();
 		if (!retval)
 			run_state = STATE_SCHEMA;
@@ -542,7 +548,7 @@ int knot_thing_protocol_run(void)
 	 * error occurs, goes to STATE_ERROR.
 	 */
 	case STATE_SCHEMA:
-		led_status(STATE_SCHEMA);
+		led_status(BLINK_STABLISHING);
 		hal_log_str("SCH");
 		retval = send_schema();
 		switch (retval) {
@@ -571,7 +577,7 @@ int knot_thing_protocol_run(void)
 	 * result was not KNOT_SUCCESS, goes to STATE_ERROR.
 	 */
 	case STATE_SCHEMA_RESP:
-		led_status(STATE_SCHEMA_RESP);
+		led_status(BLINK_STABLISHING);
 		hal_log_str("SCH_R");
 		if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) > 0) {
 			if (msg.hdr.type != KNOT_MSG_SCHEMA_RESP &&
@@ -599,8 +605,7 @@ int knot_thing_protocol_run(void)
 		break;
 
 	case STATE_ONLINE:
-		led_status(STATE_ONLINE);
-
+		led_status(BLINK_ONLINE);
 		read_online_messages();
 		msg_sensor_id++;
 		get_data(msg_sensor_id);
@@ -613,8 +618,7 @@ int knot_thing_protocol_run(void)
 		break;
 
 	case STATE_RUNNING:
-		led_status(STATE_RUNNING);
-
+		led_status(BLINK_ONLINE);
 		read_online_messages();
 		/* If some event ocurred send msg_data */
 		if (knot_thing_verify_events(&(msg.data)) == 0) {
@@ -630,10 +634,10 @@ int knot_thing_protocol_run(void)
 		break;
 
 	case STATE_ERROR:
-		led_status(STATE_ERROR);
+		hal_gpio_digital_write(PIN_LED_STATUS, 1);
 		hal_log_str("ERR");
 		run_state = STATE_DISCONNECTED;
-		hal_delay_ms(100);
+		hal_delay_ms(1000);
 		break;
 
 	default:
