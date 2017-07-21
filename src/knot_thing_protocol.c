@@ -313,6 +313,8 @@ static int get_data(uint8_t sensor_id)
 	int8_t err;
 
 	err = knot_thing_data_item_read(sensor_id, &(msg.data));
+	if (err == -2)
+		return err;
 
 	msg.hdr.type = KNOT_MSG_DATA;
 	if (err < 0)

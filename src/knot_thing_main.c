@@ -256,7 +256,7 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 
 	item = find_item(id);
 	if (!item)
-		return -1;
+		return -2;
 
 	switch (item->value_type) {
 	case KNOT_VALUE_TYPE_RAW:
