@@ -449,13 +449,16 @@ int knot_thing_verify_events(knot_msg_data *data)
 			item->upper_flag = 1;
 			item->lower_flag = 0;
 		} else {
-			if (data->payload.values.val_i.value < item->config.upper_limit.val_i.value)
+			if (data->payload.values.val_f.value_int < item->config.upper_limit.val_f.value_int) {
 				item->upper_flag = 0;
-			if (data->payload.values.val_i.value > item->config.lower_limit.val_i.value)
+			}
+			if (data->payload.values.val_f.value_int > item->config.lower_limit.val_f.value_int) {
 				item->lower_flag = 0;
+			}
 		}
-		if (data->payload.values.val_f.value_int != last->val_f.value_int)
+		if (data->payload.values.val_f.value_int != last->val_f.value_int) {
 			comparison |= (KNOT_EVT_FLAG_CHANGE & item->config.event_flags);
+		}
 
 		last->val_f.value_int = data->payload.values.val_f.value_int;
 		last->val_f.value_dec = data->payload.values.val_f.value_dec;
