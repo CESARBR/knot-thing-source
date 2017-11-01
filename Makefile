@@ -114,7 +114,7 @@ endif
 	$(CP) -r ./$(KNOT_HAL_SRC_DRIVERS_LIB_DIR)/*.h ./$(KNOT_THING_NAME)/src
 
 	# Include SPI headers and source files
-	$(FIND) ./$(KNOT_HAL_SRC_SPI_LIB_DIR)/ \( \( -name '*.c' -or -name '*.h' \) -and ! -name '*linux*' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
+	$(FIND) ./$(KNOT_HAL_SRC_SPI_LIB_DIR)/ \( \( -name '*.cpp' -or -name '*.h' \) -and ! -name '*linux*' \) -exec $(CP) {} ./$(KNOT_THING_NAME)/src \;
 
 	# Include examples files
 	$(FIND) ./examples/* \( ! -name '*.c' -prune \) -exec $(CP) -r {} ./$(KNOT_THING_NAME)/examples/ \;
