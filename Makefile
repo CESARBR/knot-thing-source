@@ -11,6 +11,8 @@
 # TODO: change this variables according to operating system
 MKDIR=mkdir
 CP=cp
+CD=cd
+MV=mv
 GIT=git
 ZIP=zip
 FIND=find
@@ -50,6 +52,9 @@ KNOT_HAL_SRC_DRIVERS_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)
 KNOT_HAL_SRC_NRF_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)/src/nrf24l01
 KNOT_HAL_SRC_SPI_LIB_DIR = ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)/src/spi
 
+KNOT_ECHO_LIB = echo_lib
+KNOT_ECHO_LIB_DIR = ./$(KNOT_THING_NAME)/examples/nRF24_Echo/$(KNOT_ECHO_LIB)
+
 .PHONY: clean clean-local
 
 default: all
@@ -74,6 +79,7 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 	#Creating subdirectories
 	$(MKDIR) -p ./$(KNOT_THING_NAME)/src/hal
 	$(MKDIR) -p ./$(KNOT_THING_NAME)/examples
+	$(MKDIR) -p ./$(KNOT_ECHO_LIB_DIR)/hal
 
 	#Filling with configuration files for Arduino IDE
 	# TODO: Create keywords.txt file to KNoT Thing
@@ -119,13 +125,34 @@ endif
 	# Include examples files
 	$(FIND) ./examples/* \( ! -name '*.c' -prune \) -exec $(CP) -r {} ./$(KNOT_THING_NAME)/examples/ \;
 
+	#Filling Echo-Lib
+	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/comm/ \( -name '*ll*' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR) \;
+	$(FIND) ./$(KNOT_HAL_HDR_LIB_DIR)/ \( -name '*avr*' -or -name '*gpio.h*' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR)/hal \;
+	$(FIND) ./$(KNOT_HAL_HDR_LIB_DIR)/ \( -name '*time.h*' -or -name '*nrf24.h*' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR)/hal \;
+	$(FIND) ./$(KNOT_HAL_SRC_SPI_LIB_DIR)/ \( ! -name '*linux*' -and ! -name '*.am' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR) \;
+	$(FIND) ./$(KNOT_HAL_SRC_NRF_LIB_DIR)/ \( ! -name '*linux*' -and ! -name '*.am' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR) \;
+	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/gpio/ \( ! -name '*linux*' -and -name '*.cpp' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR) \;
+	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/log/ \( ! -name '*linux*' -and -name '*.cpp' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR) \;
+	$(FIND) ./$(KNOT_HAL_SRC_LIB_DIR)/time/ \( ! -name '*linux*' -and -name '*.cpp' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR) \;
+	$(FIND) ./$(KNOT_HAL_SRC_DRIVERS_LIB_DIR)/ \( -name '*phy*' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR) \;
+	$(FIND) ./$(KNOT_THING_DOWNLOAD_DIR)/$(KNOT_HAL_LIB_REPO)/examples \( -name '*printf*' \) -exec $(CP) {} ./$(KNOT_ECHO_LIB_DIR) \;
+
+	#Zip Echo-Lib
+	$(CD) ./$(KNOT_ECHO_LIB_DIR) ; $(ZIP) -r $(KNOT_ECHO_LIB) ./*
+	$(MV) $(KNOT_ECHO_LIB_DIR)/$(KNOT_ECHO_LIB).zip ./$(KNOT_THING_NAME)/examples/nRF24_Echo
+
+	#Clean Echo-Lib
+	$(RM) -rf ./$(KNOT_ECHO_LIB_DIR)
+
 	#Zip directory
 	$(ZIP) -r $(KNOT_THING_TARGET) ./$(KNOT_THING_NAME)
+
 
 clean:
 	$(RM) $(KNOT_THING_TARGET)
 	$(RM) -rf ./$(KNOT_THING_DOWNLOAD_DIR)
 	$(RM) -rf ./$(KNOT_THING_NAME)
+	$(RM) -rf ./$(KNOT_ECHO_LIB).zip
 
 clean-local:
 	$(RM) $(KNOT_THING_TARGET)
