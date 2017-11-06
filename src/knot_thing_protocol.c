@@ -130,7 +130,7 @@ int knot_thing_protocol_init(const char *thing_name)
 	hal_gpio_pin_mode(PIN_LED_STATUS, OUTPUT);
 	hal_gpio_pin_mode(CLEAR_EEPROM_PIN, INPUT_PULLUP);
 
-	if (thing_name == NULL) 
+	if (thing_name == NULL)
 		halt_blinking_led(NAME_ERROR);
 
 	device_name = (char *)thing_name;
@@ -255,7 +255,7 @@ static int send_schema(void)
 	if (err < 0)
 		return err;
 
-	if (hal_comm_write(cli_sock, &(msg.buffer), 
+	if (hal_comm_write(cli_sock, &(msg.buffer),
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		/* TODO create a better error define in the protocol */
 		return KNOT_ERROR_UNKNOWN;
@@ -267,7 +267,7 @@ static int set_config(uint8_t sensor_id)
 {
 	int8_t err;
 
-	err = knot_thing_config_data_item(msg.config.sensor_id, 
+	err = knot_thing_config_data_item(msg.config.sensor_id,
 					msg.config.values.event_flags,
 					msg.config.values.time_sec,
 					&(msg.config.values.lower_limit),
@@ -279,7 +279,7 @@ static int set_config(uint8_t sensor_id)
 	msg.hdr.type = KNOT_MSG_CONFIG_RESP;
 	msg.hdr.payload_len = sizeof(msg.item.sensor_id);
 
-	if (hal_comm_write(cli_sock, &(msg.buffer), 
+	if (hal_comm_write(cli_sock, &(msg.buffer),
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
@@ -301,7 +301,7 @@ static int set_data(uint8_t sensor_id)
 	if (err < 0)
 		msg.hdr.type = KNOT_ERROR_UNKNOWN;
 
-	if (hal_comm_write(cli_sock, &(msg.buffer), 
+	if (hal_comm_write(cli_sock, &(msg.buffer),
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
@@ -322,7 +322,7 @@ static int get_data(uint8_t sensor_id)
 
 	msg.data.sensor_id = sensor_id;
 
-	if (hal_comm_write(cli_sock, &(msg.buffer), 
+	if (hal_comm_write(cli_sock, &(msg.buffer),
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
@@ -380,9 +380,9 @@ static int8_t mgmt_read(void)
 	return -1;
 }
 
-static void read_online_messages(void) 
+static void read_online_messages(void)
 {
-	if (hal_comm_read(cli_sock, &(msg.buffer), 
+	if (hal_comm_read(cli_sock, &(msg.buffer),
 					KNOT_MSG_SIZE) > 0) {
 		/* There is a message to read */
 		switch (msg.hdr.type) {
@@ -431,7 +431,7 @@ int knot_thing_protocol_run(void)
 		hal_storage_reset_end();
 		set_nrf24MAC();
 
-		/* init connection */ 
+		/* init connection */
 		init_connection();
 
 		run_state = STATE_DISCONNECTED;
@@ -440,10 +440,6 @@ int knot_thing_protocol_run(void)
 	if (enable_run == 0) {
 		return -1;
 	}
-
-	if (run_state != STATE_ERROR)
-		if (mgmt_read() == 0)
-			run_state = STATE_DISCONNECTED;
 
 	/* Network message handling state machine */
 	switch (run_state) {
@@ -492,10 +488,10 @@ int knot_thing_protocol_run(void)
 			run_state = STATE_AUTHENTICATING;
 			hal_log_str("AUTH");
 			msg.hdr.type = KNOT_MSG_AUTH_REQ;
-			msg.hdr.payload_len = KNOT_PROTOCOL_UUID_LEN + 
+			msg.hdr.payload_len = KNOT_PROTOCOL_UUID_LEN +
 						KNOT_PROTOCOL_TOKEN_LEN;
 
-			if (hal_comm_write(cli_sock, &(msg.buffer), 
+			if (hal_comm_write(cli_sock, &(msg.buffer),
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 				run_state = STATE_ERROR;
 		} else {
