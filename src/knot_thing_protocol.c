@@ -84,11 +84,7 @@ static uint8_t enable_run = 0, msg_sensor_id = 0;
  */
 static void set_nrf24MAC(void)
 {
-	uint8_t mac_mask = 4;
-
-	memset(&addr, 0, sizeof(struct nrf24_mac));
-	hal_getrandom(addr.address.b + mac_mask,
-					sizeof(struct nrf24_mac) - mac_mask);
+	hal_getrandom(addr.address.b, sizeof(struct nrf24_mac));
 	hal_storage_write_end(HAL_STORAGE_ID_MAC, &addr,
 						sizeof(struct nrf24_mac));
 }
