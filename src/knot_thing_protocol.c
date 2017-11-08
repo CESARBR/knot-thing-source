@@ -134,8 +134,8 @@ int knot_thing_protocol_init(const char *thing_name)
 	/* Set mac address if it's invalid on eeprom */
 	hal_storage_read_end(HAL_STORAGE_ID_MAC, &addr,
 						sizeof(struct nrf24_mac));
-	if ((addr.address.uint64 & 0x00000000ffffffff) != 0 ||
-						addr.address.uint64 == 0) {
+	/* MAC criteria: less significant 32-bits should not be zero */
+	if (!(addr.address.uint64 & 0x00000000ffffffff)) {
 		hal_storage_reset_end();
 		set_nrf24MAC();
 	}
