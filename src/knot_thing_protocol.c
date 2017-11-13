@@ -351,29 +351,23 @@ static int8_t mgmt_read(void)
 {
 	uint8_t buffer[MTU];
 	struct mgmt_nrf24_header *mhdr = (struct mgmt_nrf24_header *) buffer;
-	ssize_t rbytes;
+	ssize_t retval;
 
-	rbytes = hal_comm_read(sock, buffer, sizeof(buffer));
-
-	/* mgmt on bad state? */
-	if (rbytes < 0 && rbytes != -EAGAIN)
-		return -1;
-
-	/* Nothing to read? */
-	if (rbytes == -EAGAIN)
-		return -1;
+	retval = hal_comm_read(sock, buffer, sizeof(buffer));
+	if (retval < 0)
+		return retval;
 
 	/* Return/ignore if it is not an event? */
 	if (!(mhdr->opcode & 0x0200))
-		return -1;
+		return -EPROTO;
 
 	switch (mhdr->opcode) {
 
 	case MGMT_EVT_NRF24_DISCONNECTED:
-		return 0;
+		return -ENOTCONN;
 	}
 
-	return -1;
+	return 0;
 }
 
 static void read_online_messages(void)
@@ -435,6 +429,11 @@ int knot_thing_protocol_run(void)
 
 	if (enable_run == 0) {
 		return -1;
+	}
+
+	if (run_state >= STATE_CONNECTED) {
+		if (mgmt_read() == -ENOTCONN)
+			run_state = STATE_DISCONNECTED;
 	}
 
 	/* Network message handling state machine */
@@ -630,6 +629,7 @@ int knot_thing_protocol_run(void)
 	case STATE_ERROR:
 		hal_gpio_digital_write(PIN_LED_STATUS, 1);
 		hal_log_str("ERR");
+		/* TODO: Review error state handling */
 		run_state = STATE_DISCONNECTED;
 		hal_delay_ms(1000);
 		break;
