@@ -88,7 +88,7 @@ $(KNOT_THING_TARGET):  $(KNOT_PROTOCOL_LIB_DIR)
 ifdef release
 	$$(sed -i '/version/ s/=.*/=$(KNOT_THING_LIB_VERSION)/g' ./$(KNOT_THING_NAME)/library.properties)
 	$$(sed -i '/version/ s/\([v\.]\)0\+\([[:digit:]]\+\)/\1\2/g' ./$(KNOT_THING_NAME)/library.properties)
-	$$(sed -i '/version/ s/KNOT-v//g' ./$(KNOT_THING_NAME)/library.properties
+	$$(sed -i '/version/ s/KNOT-v//g' ./$(KNOT_THING_NAME)/library.properties)
 endif
 
 	#Filling root and thing directory
