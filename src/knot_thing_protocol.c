@@ -11,8 +11,6 @@
 #define KNOT_DEBUG_ENABLED 0
 
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
 #ifdef ARDUINO
 #include <Arduino.h>
@@ -77,7 +75,6 @@ static int cli_sock = -1;
 static bool schema_flag = false;
 static uint8_t enable_run = 0, msg_sensor_id = 0;
 
-
 /*
  * FIXME: Thing address should be received via NFC
  * Mac address must be stored in big endian format
@@ -90,7 +87,7 @@ static void set_nrf24MAC(void)
 }
 static void halt_blinking_led(uint32_t period)
 {
-	while(1) {
+	while (1) {
 		hal_gpio_digital_write(PIN_LED_STATUS, 0);
 		hal_delay_ms(period);
 		hal_gpio_digital_write(PIN_LED_STATUS, 1);
@@ -98,7 +95,7 @@ static void halt_blinking_led(uint32_t period)
 	}
 }
 
-static int init_connection()
+static int init_connection(void)
 {
 #if (KNOT_DEBUG_ENABLED == 1)
 	char macString[25] = {0};
@@ -129,7 +126,7 @@ int knot_thing_protocol_init(const char *thing_name)
 	if (thing_name == NULL)
 		halt_blinking_led(NAME_ERROR);
 
-	device_name = (char *)thing_name;
+	device_name = (char *) thing_name;
 
 	/* Set mac address if it's invalid on eeprom */
 	hal_storage_read_end(HAL_STORAGE_ID_MAC, &addr,
@@ -167,7 +164,7 @@ static void led_status(uint8_t status)
 	 * If the LED has lit and off twice the state,
 	 * a set a long interval
 	 */
-	if (nblink >= status * 2) {
+	if (nblink >= (status * 2)) {
 		nblink = 0;
 		status_interval = LONG_INTERVAL;
 		hal_gpio_digital_write(PIN_LED_STATUS, 0);
@@ -212,18 +209,16 @@ static int read_register(void)
 	ssize_t nbytes;
 
 	nbytes = hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE);
-
-	if (nbytes > 0) {
-		if (msg.cred.result != KNOT_SUCCESS)
-			return -1;
-
-		hal_storage_write_end(HAL_STORAGE_ID_UUID, msg.cred.uuid,
-						KNOT_PROTOCOL_UUID_LEN);
-		hal_storage_write_end(HAL_STORAGE_ID_TOKEN, msg.cred.token,
-						KNOT_PROTOCOL_TOKEN_LEN);
-	} else if (nbytes < 0)
+	if (nbytes <= 0)
 		return nbytes;
 
+	if (msg.cred.result != KNOT_SUCCESS)
+		return -1;
+
+	hal_storage_write_end(HAL_STORAGE_ID_UUID, msg.cred.uuid,
+			      KNOT_PROTOCOL_UUID_LEN);
+	hal_storage_write_end(HAL_STORAGE_ID_TOKEN, msg.cred.token,
+			      KNOT_PROTOCOL_TOKEN_LEN);
 	return 0;
 }
 
@@ -232,13 +227,11 @@ static int read_auth(void)
 	ssize_t nbytes;
 
 	nbytes = hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE);
-
-	if (nbytes > 0) {
-		if (msg.action.result != KNOT_SUCCESS)
-			return -1;
-	} else if (nbytes < 0)
+	if (nbytes <= 0)
 		return nbytes;
 
+	if (msg.action.result != KNOT_SUCCESS)
+		return -1;
 	return 0;
 }
 
@@ -259,7 +252,7 @@ static int send_schema(void)
 	return KNOT_SUCCESS;
 }
 
-static int set_config(uint8_t sensor_id)
+static int msg_set_config(uint8_t sensor_id)
 {
 	int8_t err;
 
@@ -282,7 +275,7 @@ static int set_config(uint8_t sensor_id)
 	return 0;
 }
 
-static int set_data(uint8_t sensor_id)
+static int msg_set_data(uint8_t sensor_id)
 {
 	int8_t err;
 
@@ -304,7 +297,7 @@ static int set_data(uint8_t sensor_id)
 	return 0;
 }
 
-static int get_data(uint8_t sensor_id)
+static int msg_get_data(uint8_t sensor_id)
 {
 	int8_t err;
 
@@ -334,7 +327,7 @@ static inline int is_uuid(const char *string)
 static int clear_data(void)
 {
 	if (!hal_gpio_digital_read(CLEAR_EEPROM_PIN)) {
-		if(clear_time == 0)
+		if (clear_time == 0)
 			clear_time = hal_time_ms();
 		if ((hal_time_ms() - clear_time) >= 5000)
 			return 1;
@@ -372,34 +365,34 @@ static int8_t mgmt_read(void)
 
 static void read_online_messages(void)
 {
-	if (hal_comm_read(cli_sock, &(msg.buffer),
-					KNOT_MSG_SIZE) > 0) {
-		/* There is a message to read */
-		switch (msg.hdr.type) {
-		case KNOT_MSG_SET_CONFIG:
-			set_config(msg.config.sensor_id);
-			break;
+	if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) <= 0)
+		return;
 
-		case KNOT_MSG_SET_DATA:
-			set_data(msg.data.sensor_id);
-			break;
+	/* There is a message to read */
+	switch (msg.hdr.type) {
+	case KNOT_MSG_SET_CONFIG:
+		msg_set_config(msg.config.sensor_id);
+		break;
 
-		case KNOT_MSG_GET_DATA:
-			get_data(msg.item.sensor_id);
-			break;
+	case KNOT_MSG_SET_DATA:
+		msg_set_data(msg.data.sensor_id);
+		break;
 
-		case KNOT_MSG_DATA_RESP:
-			hal_log_str("DT RSP");
-			if (msg.action.result != KNOT_SUCCESS) {
-				hal_log_str("DT R ERR");
-				get_data(msg.item.sensor_id);
-			}
-			break;
+	case KNOT_MSG_GET_DATA:
+		msg_get_data(msg.item.sensor_id);
+		break;
 
-		default:
-			/* Invalid command, ignore */
-			break;
+	case KNOT_MSG_DATA_RESP:
+		hal_log_str("DT RSP");
+		if (msg.action.result != KNOT_SUCCESS) {
+			hal_log_str("DT R ERR");
+			msg_get_data(msg.item.sensor_id);
 		}
+		break;
+
+	default:
+		/* Invalid command, ignore */
+		break;
 	}
 }
 
@@ -601,7 +594,7 @@ int knot_thing_protocol_run(void)
 		led_status(BLINK_ONLINE);
 		read_online_messages();
 		msg_sensor_id++;
-		get_data(msg_sensor_id);
+		msg_get_data(msg_sensor_id);
 		hal_log_str("DT");
 		if (msg_sensor_id >= KNOT_THING_DATA_MAX) {
 			msg_sensor_id = 0;
