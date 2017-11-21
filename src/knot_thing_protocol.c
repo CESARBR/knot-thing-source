@@ -66,7 +66,7 @@
 #define RETRANSMISSION_TIMEOUT				20000
 
 static knot_msg msg;
-static struct nrf24_mac addr;
+static struct nrf24_config config = { .mac = 0, .channel = 76 };
 static unsigned long clear_time;
 static uint32_t last_timeout;
 static char *device_name = NULL;
@@ -81,8 +81,8 @@ static uint8_t enable_run = 0, msg_sensor_id = 0;
  */
 static void set_nrf24MAC(void)
 {
-	hal_getrandom(addr.address.b, sizeof(struct nrf24_mac));
-	hal_storage_write_end(HAL_STORAGE_ID_MAC, &addr,
+	hal_getrandom(config.mac.address.b, sizeof(struct nrf24_mac));
+	hal_storage_write_end(HAL_STORAGE_ID_MAC, &config.mac,
 						sizeof(struct nrf24_mac));
 }
 static void halt_blinking_led(uint32_t period)
@@ -99,12 +99,12 @@ static int init_connection(void)
 {
 #if (KNOT_DEBUG_ENABLED == 1)
 	char macString[25] = {0};
-	nrf24_mac2str(&addr, macString);
+	nrf24_mac2str(&config.mac, macString);
 
 	hal_log_str("MAC");
 	hal_log_str(macString);
 #endif
-	if (hal_comm_init("NRF0", &addr) < 0)
+	if (hal_comm_init("NRF0", &config) < 0)
 		halt_blinking_led(COMM_ERROR);
 
 	sock = hal_comm_socket(HAL_COMM_PF_NRF24, HAL_COMM_PROTO_RAW);
@@ -129,10 +129,10 @@ int knot_thing_protocol_init(const char *thing_name)
 	device_name = (char *) thing_name;
 
 	/* Set mac address if it's invalid on eeprom */
-	hal_storage_read_end(HAL_STORAGE_ID_MAC, &addr,
+	hal_storage_read_end(HAL_STORAGE_ID_MAC, &config.mac,
 						sizeof(struct nrf24_mac));
 	/* MAC criteria: less significant 32-bits should not be zero */
-	if (!(addr.address.uint64 & 0x00000000ffffffff)) {
+	if (!(config.mac.address.uint64 & 0x00000000ffffffff)) {
 		hal_storage_reset_end();
 		set_nrf24MAC();
 	}
