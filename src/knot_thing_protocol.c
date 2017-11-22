@@ -66,10 +66,9 @@
 #define RETRANSMISSION_TIMEOUT				20000
 
 static knot_msg msg;
-static struct nrf24_config config = { .mac = 0, .channel = 76 };
+static struct nrf24_config config = { .mac = 0, .channel = 76 , .name = NULL};
 static unsigned long clear_time;
 static uint32_t last_timeout;
-static char *device_name = NULL;
 static int sock = -1;
 static int cli_sock = -1;
 static bool schema_flag = false;
@@ -126,7 +125,7 @@ int knot_thing_protocol_init(const char *thing_name)
 	if (thing_name == NULL)
 		halt_blinking_led(NAME_ERROR);
 
-	device_name = (char *) thing_name;
+	config.name = (const char *) thing_name;
 
 	/* Set mac address if it's invalid on eeprom */
 	hal_storage_read_end(HAL_STORAGE_ID_MAC, &config.mac,
@@ -193,9 +192,9 @@ static int send_register(void)
 {
 	uint8_t len;
 
-	len = MIN(sizeof(msg.reg.devName), strlen(device_name));
+	len = MIN(sizeof(msg.reg.devName), strlen(config.name));
 	msg.hdr.type = KNOT_MSG_REGISTER_REQ;
-	strncpy(msg.reg.devName, device_name, len);
+	strncpy(msg.reg.devName, config.name, len);
 	msg.hdr.payload_len = len;
 
 	if (hal_comm_write(cli_sock, &(msg.buffer), sizeof(msg.hdr) + len) < 0)
