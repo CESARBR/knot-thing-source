@@ -194,10 +194,12 @@ static int send_register(void)
 
 	len = MIN(sizeof(msg.reg.devName), strlen(config.name));
 	msg.hdr.type = KNOT_MSG_REGISTER_REQ;
+	msg.reg.id = config.mac.address.uint64; /* Maps id to nRF24 MAC */
 	strncpy(msg.reg.devName, config.name, len);
-	msg.hdr.payload_len = len;
+	msg.hdr.payload_len = len + sizeof(msg.reg.id);
 
-	if (hal_comm_write(cli_sock, &(msg.buffer), sizeof(msg.hdr) + len) < 0)
+	if (hal_comm_write(cli_sock, &(msg.buffer),
+			   sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
 	return 0;
