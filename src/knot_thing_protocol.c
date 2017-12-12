@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 2016, CESAR.
  * All rights reserved.
  *
@@ -43,8 +43,8 @@
 #define STATE_ERROR			9
 
 /* Intervals for LED blinking */
-#define LONG_INTERVAL			5000
-#define SHORT_INTERVAL			250
+#define LONG_INTERVAL			10000
+#define SHORT_INTERVAL			1000
 
 /* Number of times LED is blinking */
 #define BLINK_DISCONNECTED		100
@@ -54,6 +54,10 @@
 /* Periods for LED blinking in HALT conditions */
 #define NAME_ERROR			50
 #define COMM_ERROR			100
+#define AUTH_ERROR			250
+
+/* Time that the clear eeprom button needs to be pressed */
+#define BUTTON_PRESSED_TIME		5000
 
 /* KNoT MTU */
 #define MTU 256
@@ -78,12 +82,40 @@ static uint8_t enable_run = 0, msg_sensor_id = 0;
  * FIXME: Thing address should be received via NFC
  * Mac address must be stored in big endian format
  */
+
+void(* reset_function) (void) = 0; //declare reset function @ address 0
+
 static void set_nrf24MAC(void)
 {
 	hal_getrandom(config.mac.address.b, sizeof(struct nrf24_mac));
 	hal_storage_write_end(HAL_STORAGE_ID_MAC, &config.mac,
 						sizeof(struct nrf24_mac));
 }
+
+static void verify_clear_data(void)
+{
+	if (!hal_gpio_digital_read(CLEAR_EEPROM_PIN)) {
+
+		if (clear_time == 0)
+			clear_time = hal_time_ms();
+
+		if (hal_timeout(hal_time_ms(), clear_time, BUTTON_PRESSED_TIME)) {
+			/* close connection */
+			knot_thing_protocol_exit();
+
+			/* generate new MAC addr */
+			hal_storage_reset_end();
+			set_nrf24MAC();
+
+			/* reset thing */
+			reset_function();
+
+		}
+	} else
+		clear_time = 0;
+
+}
+
 static void halt_blinking_led(uint32_t period)
 {
 	while (1) {
@@ -91,6 +123,7 @@ static void halt_blinking_led(uint32_t period)
 		hal_delay_ms(period);
 		hal_gpio_digital_write(PIN_LED_STATUS, 1);
 		hal_delay_ms(period);
+		verify_clear_data();
 	}
 }
 
@@ -325,22 +358,6 @@ static inline int is_uuid(const char *string)
 		string[13] == '-' && string[18] == '-' && string[23] == '-');
 }
 
-static int clear_data(void)
-{
-	if (!hal_gpio_digital_read(CLEAR_EEPROM_PIN)) {
-		if (clear_time == 0)
-			clear_time = hal_time_ms();
-		if ((hal_time_ms() - clear_time) >= 5000)
-			return 1;
-
-		return 0;
-	}
-
-	clear_time = 0;
-
-	return 0;
-}
-
 static int8_t mgmt_read(void)
 {
 	uint8_t buffer[MTU];
@@ -407,19 +424,7 @@ int knot_thing_protocol_run(void)
 	/*
 	 * Verifies if the button for eeprom clear is pressed for more than 5s
 	 */
-	if (clear_data()) {
-		/* close connection */
-		knot_thing_protocol_exit();
-
-		/* generate new MAC addr */
-		hal_storage_reset_end();
-		set_nrf24MAC();
-
-		/* init connection */
-		init_connection();
-
-		run_state = STATE_DISCONNECTED;
-	}
+	verify_clear_data();
 
 	if (enable_run == 0) {
 		return -1;
@@ -510,7 +515,7 @@ int knot_thing_protocol_run(void)
 				run_state = STATE_SCHEMA;
 		}
 		else if (retval != -EAGAIN)
-			run_state = STATE_ERROR;
+			halt_blinking_led(AUTH_ERROR);
 		else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
 			run_state = STATE_CONNECTED;
