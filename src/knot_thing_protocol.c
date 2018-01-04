@@ -223,13 +223,19 @@ static void led_status(uint8_t status)
 
 static int send_register(void)
 {
-	uint8_t len;
+	/*
+	 * KNOT_MSG_REGISTER_REQ PDU should fit in nRF24 MTU in order
+	 * to avoid frame segmentation. Re-transmission may happen
+	 * frequently at noisy environments or if the remote is not ready.
+	 */
+	uint8_t name_len = NRF24_MTU - (sizeof(msg.reg.hdr) +
+						sizeof(msg.reg.id));
 
-	len = MIN(sizeof(msg.reg.devName), strlen(config.name));
+	name_len = MIN(name_len, strlen(config.name));
 	msg.hdr.type = KNOT_MSG_REGISTER_REQ;
 	msg.reg.id = config.mac.address.uint64; /* Maps id to nRF24 MAC */
-	strncpy(msg.reg.devName, config.name, len);
-	msg.hdr.payload_len = len + sizeof(msg.reg.id);
+	strncpy(msg.reg.devName, config.name, name_len);
+	msg.hdr.payload_len = name_len + sizeof(msg.reg.id);
 
 	if (hal_comm_write(cli_sock, &(msg.buffer),
 			   sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
