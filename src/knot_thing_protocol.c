@@ -169,6 +169,8 @@ int knot_thing_protocol_init(const char *thing_name)
 		set_nrf24MAC();
 	}
 
+	config.id = config.mac.address.uint64;
+
 	return init_connection();
 }
 
