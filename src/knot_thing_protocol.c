@@ -615,6 +615,10 @@ int knot_thing_protocol_run(void)
 		led_status(BLINK_STABLISHING);
 		hal_log_str("SCH_R");
 		if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) > 0) {
+			if (msg.hdr.type == KNOT_MSG_UNREGISTER_REQ) {
+				handle_unregister();
+				break;
+			}
 			if (msg.hdr.type != KNOT_MSG_SCHEMA_RESP &&
 				msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
 				break;
