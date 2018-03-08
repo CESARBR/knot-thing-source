@@ -223,6 +223,25 @@ static void led_status(uint8_t status)
 	}
 }
 
+static void handle_unregister(void) {
+	/* send KNOT_MSG_UNREGISTER_RESP message */
+	msg.hdr.type = KNOT_MSG_UNREGISTER_RESP;
+	msg.action.result = KNOT_SUCCESS;
+	msg.hdr.payload_len = sizeof(msg.action.result);
+	hal_comm_write(cli_sock, &(msg.buffer),
+			sizeof(msg.hdr) + msg.hdr.payload_len);
+
+	/* reset EEPROM (UUID/Token) and generate new MAC addr */
+	hal_storage_reset_end();
+	set_nrf24MAC();
+
+	/* close connection */
+	knot_thing_protocol_exit();
+
+	/* reset thing */
+	reset_function();
+}
+
 static int send_register(void)
 {
 	/*
