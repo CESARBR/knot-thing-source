@@ -299,6 +299,14 @@ static int read_auth(void)
 	if (nbytes <= 0)
 		return nbytes;
 
+	if (msg.hdr.type == KNOT_MSG_UNREGISTER_REQ) {
+		handle_unregister();
+		return -1;
+	}
+
+	if (msg.hdr.type != KNOT_MSG_AUTH_RESP)
+		return -1;
+
 	if (msg.action.result != KNOT_SUCCESS)
 		return -1;
 	return 0;
