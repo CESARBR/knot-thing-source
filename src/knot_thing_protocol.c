@@ -451,6 +451,10 @@ static void read_online_messages(void)
 		}
 		break;
 
+	case KNOT_MSG_UNREGISTER_REQ:
+		handle_unregister();
+		break;
+
 	default:
 		/* Invalid command, ignore */
 		break;
