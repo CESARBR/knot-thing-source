@@ -273,6 +273,14 @@ static int read_register(void)
 	if (nbytes <= 0)
 		return nbytes;
 
+	if (msg.hdr.type == KNOT_MSG_UNREGISTER_REQ) {
+		handle_unregister();
+		return -1;
+	}
+
+	if (msg.hdr.type != KNOT_MSG_REGISTER_RESP)
+		return -1;
+
 	if (msg.cred.result != KNOT_SUCCESS)
 		return -1;
 
