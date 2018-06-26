@@ -309,7 +309,7 @@ static int read_auth(void)
 		return -1;
 
 	if (msg.action.result != KNOT_SUCCESS)
-		thing_disconnect_exit();
+		return -1;
 
 	return 0;
 }
