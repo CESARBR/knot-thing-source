@@ -24,7 +24,7 @@
 #include <hal/storage.h>
 #include <hal/nrf24.h>
 #include <hal/comm.h>
-#include <hal/gpio.h>
+#include <hal/gpio_avr.h>
 #include <hal/time.h>
 #include "knot_thing_protocol.h"
 #include "knot_thing_main.h"
