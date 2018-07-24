@@ -37,7 +37,7 @@ static struct _data_items {
 	uint8_t upper_flag;
 
 	// data values
-	knot_value_types	last_data;
+	knot_value_type		last_data;
 	uint8_t			*last_value_raw;
 	// config values
 	knot_config		config;	// Flags indicating when data will be sent
@@ -192,8 +192,8 @@ int8_t knot_thing_register_data_item(uint8_t id, const char *name,
 }
 
 int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
-							knot_value_types *lower,
-							knot_value_types *upper)
+							knot_value_type *lower,
+							knot_value_type *upper)
 {
 	struct _data_items *item = find_item(id);
 
@@ -273,7 +273,7 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 		if (item->functions.bool_f.read == NULL)
 			return -1;
 
-		if (item->functions.bool_f.read(&(data->payload.values.val_b)) < 0)
+		if (item->functions.bool_f.read(&(data->payload.val_b)) < 0)
 			return -1;
 
 		data->hdr.payload_len = sizeof(knot_value_type_bool)
@@ -284,8 +284,8 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 			return -1;
 
 		if (item->functions.int_f.read(
-			&(data->payload.values.val_i.value),
-			 &(data->payload.values.val_i.multiplier)) < 0)
+			&(data->payload.val_i.value),
+			 &(data->payload.val_i.multiplier)) < 0)
 			return -1;
 
 		data->hdr.payload_len = sizeof(knot_value_type_int)
@@ -296,9 +296,9 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 			return -1;
 
 		if (item->functions.float_f.read(
-			&(data->payload.values.val_f.value_int),
-			&(data->payload.values.val_f.value_dec),
-			&(data->payload.values.val_f.multiplier)) < 0)
+			&(data->payload.val_f.value_int),
+			&(data->payload.val_f.value_dec),
+			&(data->payload.val_f.multiplier)) < 0)
 			return -1;
 
 		data->hdr.payload_len = sizeof(knot_value_type_float)
@@ -334,24 +334,24 @@ int knot_thing_data_item_write(uint8_t id, knot_msg_data *data)
 			goto done;
 
 		ret_val = item->functions.bool_f.write(
-					&data->payload.values.val_b);
+					&data->payload.val_b);
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		if (item->functions.int_f.write == NULL)
 			goto done;
 
 		ret_val = item->functions.int_f.write(
-					&data->payload.values.val_i.value,
-					&data->payload.values.val_i.multiplier);
+					&data->payload.val_i.value,
+					&data->payload.val_i.multiplier);
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		if (item->functions.float_f.write == NULL)
 			goto done;
 
 		ret_val = item->functions.float_f.write(
-					&data->payload.values.val_f.value_int,
-					&data->payload.values.val_f.value_dec,
-					&data->payload.values.val_f.multiplier);
+					&data->payload.val_f.value_int,
+					&data->payload.val_f.value_dec,
+					&data->payload.val_f.multiplier);
 		break;
 	default:
 		break;
@@ -369,7 +369,7 @@ int8_t knot_thing_run(void)
 int knot_thing_verify_events(knot_msg_data *data)
 {
 	struct _data_items *item;
-	knot_value_types *last;
+	knot_value_type *last;
 	uint8_t comparison = 0;
 	/* Current time in miliseconds to verify sensor timeout */
 	uint32_t current_time;
@@ -406,60 +406,60 @@ int knot_thing_verify_events(knot_msg_data *data)
 		comparison = 1;
 		break;
 	case KNOT_VALUE_TYPE_BOOL:
-		if (data->payload.values.val_b != last->val_b) {
+		if (data->payload.val_b != last->val_b) {
 			comparison |= (KNOT_EVT_FLAG_CHANGE & item->config.event_flags);
-			last->val_b = data->payload.values.val_b;
+			last->val_b = data->payload.val_b;
 		}
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		// TODO: add multiplier to comparison
-		if (data->payload.values.val_i.value < item->config.lower_limit.val_i.value &&
+		if (data->payload.val_i.value < item->config.lower_limit.val_i.value &&
 						item->lower_flag == 0) {
 			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & item->config.event_flags);
 			item->upper_flag = 0;
 			item->lower_flag = 1;
-		} else if (data->payload.values.val_i.value > item->config.upper_limit.val_i.value &&
+		} else if (data->payload.val_i.value > item->config.upper_limit.val_i.value &&
 			   item->upper_flag == 0) {
 			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & item->config.event_flags);
 			item->upper_flag = 1;
 			item->lower_flag = 0;
 		} else {
-			if (data->payload.values.val_i.value < item->config.upper_limit.val_i.value)
+			if (data->payload.val_i.value < item->config.upper_limit.val_i.value)
 				item->upper_flag = 0;
-			if (data->payload.values.val_i.value > item->config.lower_limit.val_i.value)
+			if (data->payload.val_i.value > item->config.lower_limit.val_i.value)
 				item->lower_flag = 0;
 		}
 
-		if (data->payload.values.val_i.value != last->val_i.value)
+		if (data->payload.val_i.value != last->val_i.value)
 			comparison |= (KNOT_EVT_FLAG_CHANGE & item->config.event_flags);
 
-		last->val_i.value = data->payload.values.val_i.value;
-		last->val_i.multiplier = data->payload.values.val_i.multiplier;
+		last->val_i.value = data->payload.val_i.value;
+		last->val_i.multiplier = data->payload.val_i.multiplier;
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		// TODO: add multiplier and decimal part to comparison
-		if (data->payload.values.val_f.value_int < item->config.lower_limit.val_f.value_int &&
+		if (data->payload.val_f.value_int < item->config.lower_limit.val_f.value_int &&
 				item->lower_flag == 0) {
 			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & item->config.event_flags);
 			item->upper_flag = 0;
 			item->lower_flag = 1;
-		} else if (data->payload.values.val_f.value_int > item->config.upper_limit.val_f.value_int &&
+		} else if (data->payload.val_f.value_int > item->config.upper_limit.val_f.value_int &&
 			   item->upper_flag == 0) {
 			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & item->config.event_flags);
 			item->upper_flag = 1;
 			item->lower_flag = 0;
 		} else {
-			if (data->payload.values.val_i.value < item->config.upper_limit.val_i.value)
+			if (data->payload.val_i.value < item->config.upper_limit.val_i.value)
 				item->upper_flag = 0;
-			if (data->payload.values.val_i.value > item->config.lower_limit.val_i.value)
+			if (data->payload.val_i.value > item->config.lower_limit.val_i.value)
 				item->lower_flag = 0;
 		}
-		if (data->payload.values.val_f.value_int != last->val_f.value_int)
+		if (data->payload.val_f.value_int != last->val_f.value_int)
 			comparison |= (KNOT_EVT_FLAG_CHANGE & item->config.event_flags);
 
-		last->val_f.value_int = data->payload.values.val_f.value_int;
-		last->val_f.value_dec = data->payload.values.val_f.value_dec;
-		last->val_f.multiplier = data->payload.values.val_f.multiplier;
+		last->val_f.value_int = data->payload.val_f.value_int;
+		last->val_f.value_dec = data->payload.val_f.value_dec;
+		last->val_f.multiplier = data->payload.val_f.multiplier;
 		break;
 	default:
 		// This data item is not registered with a valid value type

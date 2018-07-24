@@ -85,8 +85,8 @@ int KNoTThing::registerDefaultConfig(uint8_t sensor_id, uint8_t event_flags,
 		uint16_t time_sec, int32_t upper_int, uint32_t upper_dec,
 		int32_t lower_int, uint32_t lower_dec)
 {
-	knot_value_types lower;
-	knot_value_types upper;
+	knot_value_type lower;
+	knot_value_type upper;
 
 	lower.val_f.value_int = lower_int;
 	lower.val_f.value_dec = lower_dec;
