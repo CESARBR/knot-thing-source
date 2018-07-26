@@ -66,7 +66,7 @@ int KNoTThing::registerBoolData(const char *name, uint8_t sensor_id,
 
 int KNoTThing::registerRawData(const char *name, uint8_t *raw_buffer,
 		uint8_t raw_buffer_len, uint8_t sensor_id, uint16_t type_id,
-		uint8_t unit, rawDataFunction read, rawDataFunction write)
+		uint8_t unit, rawReadFunction read, rawWriteFunction write)
 {
 	knot_data_functions func;
 	func.raw_f.read = read;

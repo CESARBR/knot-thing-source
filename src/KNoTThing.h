@@ -40,8 +40,8 @@ public:
 
 	int registerRawData(const char *name, uint8_t *raw_buffer,
 			uint8_t raw_buffer_len, uint8_t sensor_id,
-			uint16_t type_id, uint8_t unit, rawDataFunction read,
-			rawDataFunction write);
+			uint16_t type_id, uint8_t unit, rawReadFunction read,
+			rawWriteFunction write);
 
 	int registerDefaultConfig(uint8_t sensor_id, uint8_t event_flags,
 		uint16_t time_sec, int32_t upper_int, uint32_t upper_dec,

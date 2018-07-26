@@ -39,6 +39,7 @@ static struct _data_items {
 	// data values
 	knot_value_type		last_data;
 	uint8_t			*last_value_raw;
+	uint8_t			raw_length;
 	// config values
 	knot_config		config;	// Flags indicating when data will be sent
 	// time values
@@ -90,6 +91,7 @@ static void reset_data_items(void)
 		item->config.upper_limit.val_f.value_int	= 0;
 		item->config.upper_limit.val_f.value_dec	= 0;
 		item->last_value_raw				= NULL;
+		item->raw_length				= 0;
 		/* As "functions" is a union, we need just to set only one of its members */
 		item->functions.int_f.read			= NULL;
 		item->functions.int_f.write			= NULL;
@@ -125,7 +127,7 @@ int8_t knot_thing_register_raw_data_item(uint8_t id, const char *name,
 	if (raw_buffer == NULL)
 		return -1;
 
-	if (raw_buffer_len != KNOT_DATA_RAW_SIZE)
+	if (raw_buffer_len > KNOT_DATA_RAW_SIZE)
 		return -1;
 
 	if (knot_thing_register_data_item(id, name, type_id, value_type,
@@ -134,6 +136,7 @@ int8_t knot_thing_register_raw_data_item(uint8_t id, const char *name,
 
 	/* TODO: Find an alternative way to assign raw buffer */
 	data_items[last_item].last_value_raw = raw_buffer;
+	data_items[last_item].raw_length = raw_buffer_len;
 
 	return 0;
 }
@@ -253,21 +256,27 @@ int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg)
 int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 {
 	struct _data_items *item;
+	int len;
 
 	item = find_item(id);
 	if (!item)
 		return -2;
 
+	data->hdr.payload_len = sizeof(data->sensor_id);
 	switch (item->value_type) {
 	case KNOT_VALUE_TYPE_RAW:
 		if (item->functions.raw_f.read == NULL)
 			return -1;
 
-		if (item->functions.raw_f.read(data->payload.raw,
-				&(data->hdr.payload_len)) < 0)
+		len = item->functions.raw_f.read(data->payload.raw,
+						 sizeof(data->payload.raw));
+		if (len < 0)
 			return -1;
 
-		data->hdr.payload_len += sizeof(data->sensor_id);
+		if (len > item->raw_length)
+			return -1;
+
+		data->hdr.payload_len += len;
 		break;
 	case KNOT_VALUE_TYPE_BOOL:
 		if (item->functions.bool_f.read == NULL)
@@ -276,8 +285,7 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 		if (item->functions.bool_f.read(&(data->payload.val_b)) < 0)
 			return -1;
 
-		data->hdr.payload_len = sizeof(knot_value_type_bool)
-					+ sizeof(data->sensor_id);
+		data->hdr.payload_len += sizeof(knot_value_type_bool);
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		if (item->functions.int_f.read == NULL)
@@ -288,8 +296,7 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 			 &(data->payload.val_i.multiplier)) < 0)
 			return -1;
 
-		data->hdr.payload_len = sizeof(knot_value_type_int)
-					+ sizeof(data->sensor_id);
+		data->hdr.payload_len += sizeof(knot_value_type_int);
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		if (item->functions.float_f.read == NULL)
@@ -301,8 +308,7 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 			&(data->payload.val_f.multiplier)) < 0)
 			return -1;
 
-		data->hdr.payload_len = sizeof(knot_value_type_float)
-					+ sizeof(data->sensor_id);
+		data->hdr.payload_len += sizeof(knot_value_type_float);
 		break;
 	default:
 		return -1;
@@ -314,20 +320,28 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 int knot_thing_data_item_write(uint8_t id, knot_msg_data *data)
 {
 	int8_t ret_val = -1;
-	uint8_t len;
+	int8_t ilen;
 	struct _data_items *item;
 
 	item = find_item(id);
 	if (!item)
 		return -1;
 
+	/* Received data length */
+	ilen = data->hdr.payload_len - sizeof(data->sensor_id);
+	/* Setting length to send */
+	data->hdr.payload_len = sizeof(data->sensor_id);
+
 	switch (item->value_type) {
 	case KNOT_VALUE_TYPE_RAW:
-		len = sizeof(data->payload.raw);
 		if (item->functions.raw_f.write == NULL)
 			goto done;
 
-		ret_val = item->functions.raw_f.write(data->payload.raw, &len);
+		ret_val = item->functions.raw_f.write(data->payload.raw, ilen);
+		if (ret_val < 0 || ret_val > KNOT_DATA_RAW_SIZE)
+			return -1;
+
+		data->hdr.payload_len += ret_val;
 		break;
 	case KNOT_VALUE_TYPE_BOOL:
 		if (item->functions.bool_f.write == NULL)
@@ -335,6 +349,10 @@ int knot_thing_data_item_write(uint8_t id, knot_msg_data *data)
 
 		ret_val = item->functions.bool_f.write(
 					&data->payload.val_b);
+		if (ret_val < 0)
+			break;
+
+		data->hdr.payload_len += sizeof(data->payload.val_b);
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		if (item->functions.int_f.write == NULL)
@@ -343,6 +361,10 @@ int knot_thing_data_item_write(uint8_t id, knot_msg_data *data)
 		ret_val = item->functions.int_f.write(
 					&data->payload.val_i.value,
 					&data->payload.val_i.multiplier);
+		if (ret_val < 0)
+			break;
+
+		data->hdr.payload_len += sizeof(data->payload.val_i);
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		if (item->functions.float_f.write == NULL)
@@ -352,6 +374,10 @@ int knot_thing_data_item_write(uint8_t id, knot_msg_data *data)
 					&data->payload.val_f.value_int,
 					&data->payload.val_f.value_dec,
 					&data->payload.val_f.multiplier);
+		if (ret_val < 0)
+			break;
+
+		data->hdr.payload_len += sizeof(data->payload.val_f);
 		break;
 	default:
 		break;
@@ -399,10 +425,12 @@ int knot_thing_verify_events(knot_msg_data *data)
 		if (item->last_value_raw == NULL)
 			goto none;
 
-		if (memcmp(item->last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE) == 0)
+		if (memcmp(item->last_value_raw, data->payload.raw,
+			   item->raw_length) == 0)
 			goto none;
 
-		memcpy(item->last_value_raw, data->payload.raw, KNOT_DATA_RAW_SIZE);
+		memcpy(item->last_value_raw, data->payload.raw,
+		       item->raw_length);
 		comparison = 1;
 		break;
 	case KNOT_VALUE_TYPE_BOOL:

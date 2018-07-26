@@ -19,7 +19,10 @@ extern "C" {
 typedef int (*intDataFunction)		(int32_t *val, int32_t *multiplier);
 typedef int (*floatDataFunction)	(int32_t *val_int, uint32_t *val_dec, int32_t *multiplier);
 typedef int (*boolDataFunction)		(uint8_t *val);
-typedef int (*rawDataFunction)		(uint8_t *val, uint8_t *len);
+
+/* Return ammount read or written */
+typedef int (*rawReadFunction)		(uint8_t *buffer, uint8_t len);
+typedef int (*rawWriteFunction)		(const uint8_t *buffer, uint8_t len);
 
 typedef struct __attribute__ ((packed)) {
 	intDataFunction read;
@@ -37,8 +40,8 @@ typedef struct __attribute__ ((packed)) {
 } knot_bool_functions;
 
 typedef struct __attribute__ ((packed)) {
-	rawDataFunction read;
-	rawDataFunction write;
+	rawReadFunction read;
+	rawWriteFunction write;
 } knot_raw_functions;
 
 typedef union __attribute__ ((packed)) {
