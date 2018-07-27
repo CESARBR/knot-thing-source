@@ -58,6 +58,11 @@ int8_t	knot_thing_run(void);
 
 /*
  * Data item (source/sink) registration functions
+ *
+ * The allowed values for type_id and unit parameters are defined by KNOT
+ * protocol in knot_types.h file.
+ *
+ * https://github.com/CESARBR/knot-protocol-source/blob/master/src/knot_types.h
  */
 int8_t knot_thing_register_raw_data_item(uint8_t sensor_id, const char *name,
 	uint8_t *raw_buffer, uint8_t raw_buffer_len, uint16_t type_id,
