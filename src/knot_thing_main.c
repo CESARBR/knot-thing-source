@@ -235,9 +235,6 @@ int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg)
 
 	msg->hdr.type = KNOT_MSG_SCHEMA;
 
-	if (!item)
-		return KNOT_INVALID_DEVICE;
-
 	msg->sensor_id = id;
 	msg->values.value_type = item->value_type;
 	msg->values.unit = item->unit;
