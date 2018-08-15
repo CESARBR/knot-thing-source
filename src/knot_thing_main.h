@@ -71,13 +71,21 @@ int8_t knot_thing_register_raw_data_item(uint8_t sensor_id, const char *name,
 int8_t knot_thing_register_data_item(uint8_t sensor_id, const char *name, uint16_t type_id,
 	uint8_t value_type, uint8_t unit, knot_data_functions *func);
 
-int knot_thing_create_schema(uint8_t id, knot_msg_schema *msg);
+/* Create schema for data item in position given by index if valid */
+int knot_thing_create_schema(uint8_t index, knot_msg_schema *msg);
 int knot_thing_data_item_read(uint8_t id, knot_msg_data *data);
 int knot_thing_data_item_write(uint8_t id, knot_msg_data *data);
 int knot_thing_verify_events(knot_msg_data *data);
 int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
 						knot_value_type *lower,
 						knot_value_type *upper);
+
+/*
+ * Auxiliary functions
+ */
+
+/* Find id for item in given index. Returns 0 if index is out of boundaries */
+uint8_t knot_thing_get_sensor_id(const uint8_t index);
 
 #ifdef __cplusplus
 }
