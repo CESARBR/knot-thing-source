@@ -318,7 +318,7 @@ static int send_schema(void)
 {
 	int8_t err;
 
-	err = knot_thing_create_schema(knot_thing_get_sensor_id(msg_sensor_index), &(msg.schema));
+	err = knot_thing_create_schema(knot_thing_get_sensor_id(msg_sensor_index-1), &(msg.schema));
 
 	if (err < 0)
 		return err;
@@ -653,8 +653,8 @@ int knot_thing_protocol_run(void)
 	case STATE_ONLINE:
 		led_status(BLINK_ONLINE);
 		read_online_messages();
-		msg_sensor_index++;
 		msg_get_data(knot_thing_get_sensor_id(msg_sensor_index));
+		msg_sensor_index++;
 		hal_log_str("DT");
 		if (msg_sensor_index >= KNOT_THING_DATA_MAX) {
 			msg_sensor_index = 0;
