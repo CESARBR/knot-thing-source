@@ -526,5 +526,4 @@ uint8_t knot_thing_get_sensor_id(const uint8_t index)
 		return 0;
 	}
 	return data_items[index].id;
-};
-
+}
