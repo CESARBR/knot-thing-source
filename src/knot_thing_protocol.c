@@ -318,7 +318,7 @@ static int send_schema(void)
 {
 	int8_t err;
 	/* Create schema for sensor in position=msg_sensor_index */
-	err = knot_thing_create_schema(knot_thing_get_sensor_id(msg_sensor_index-1), &(msg.schema));
+	err = knot_thing_create_schema(msg_sensor_index-1, &(msg.schema));
 
 	if (err < 0)
 		return err;
