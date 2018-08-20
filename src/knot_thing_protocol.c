@@ -77,7 +77,7 @@ static uint32_t unreg_timeout;
 static int sock = -1;
 static int cli_sock = -1;
 static bool schema_flag = false;
-static uint8_t enable_run = 0, msg_sensor_id = 0;
+static uint8_t enable_run = 0, msg_sensor_index = 0;
 
 /*
  * FIXME: Thing address should be received via NFC
@@ -317,8 +317,8 @@ static int read_auth(void)
 static int send_schema(void)
 {
 	int8_t err;
-
-	err = knot_thing_create_schema(msg_sensor_id, &(msg.schema));
+	/* Create schema for sensor in position=msg_sensor_index */
+	err = knot_thing_create_schema(msg_sensor_index-1, &(msg.schema));
 
 	if (err < 0)
 		return err;
@@ -586,7 +586,7 @@ int knot_thing_protocol_run(void)
 	/*
 	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
 	 * wait for the ack of this schema. If there is no schema for that
-	 * msg_sensor_id, increments and stays in the STATE_SCHEMA. If an
+	 * msg_sensor_index, increments and stays in the STATE_SCHEMA. If an
 	 * error occurs, goes to STATE_ERROR.
 	 */
 	case STATE_SCHEMA:
@@ -604,7 +604,7 @@ int knot_thing_protocol_run(void)
 		case KNOT_SCHEMA_EMPTY:
 		case KNOT_INVALID_DEVICE:
 			run_state = STATE_SCHEMA;
-			msg_sensor_id++;
+			msg_sensor_index++;
 			break;
 		default:
 			run_state = STATE_ERROR;
@@ -635,7 +635,7 @@ int knot_thing_protocol_run(void)
 			}
 			if (msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
 				run_state = STATE_SCHEMA;
-				msg_sensor_id++;
+				msg_sensor_index++;
 				break;
 			}
 			/* All the schemas were sent to GW */
@@ -644,7 +644,7 @@ int knot_thing_protocol_run(void)
 					&schema_flag, sizeof(schema_flag));
 			run_state = STATE_ONLINE;
 			hal_log_str("ONLN");
-			msg_sensor_id = 0;
+			msg_sensor_index = 0;
 		} else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
 			run_state = STATE_SCHEMA;
@@ -653,11 +653,11 @@ int knot_thing_protocol_run(void)
 	case STATE_ONLINE:
 		led_status(BLINK_ONLINE);
 		read_online_messages();
-		msg_sensor_id++;
-		msg_get_data(msg_sensor_id);
+		msg_get_data(knot_thing_get_sensor_id(msg_sensor_index));
+		msg_sensor_index++;
 		hal_log_str("DT");
-		if (msg_sensor_id >= KNOT_THING_DATA_MAX) {
-			msg_sensor_id = 0;
+		if (msg_sensor_index >= KNOT_THING_DATA_MAX) {
+			msg_sensor_index = 0;
 			run_state = STATE_RUNNING;
 			hal_log_str("RUN");
 		}
