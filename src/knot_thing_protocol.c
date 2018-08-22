@@ -601,6 +601,7 @@ int knot_thing_protocol_run(void)
 			break;
 		case KNOT_ERROR_UNKNOWN:
 			run_state = STATE_ERROR;
+			msg_sensor_index = 0;
 			break;
 		case KNOT_SCHEMA_EMPTY:
 		case KNOT_INVALID_DEVICE:
@@ -609,6 +610,7 @@ int knot_thing_protocol_run(void)
 			break;
 		default:
 			run_state = STATE_ERROR;
+			msg_sensor_index = 0;
 			break;
 		}
 		break;
