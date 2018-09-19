@@ -79,15 +79,12 @@ static void reset_data_items(void)
 		item->value_type				= KNOT_VALUE_TYPE_INVALID;
 		item->config.event_flags			= KNOT_EVT_FLAG_UNREGISTERED;
 		/* As "last_data" is a union, we need just to set the "biggest" member*/
-		item->last_data.val_f.multiplier		= 1;
 		item->last_data.val_f.value_int		= 0;
 		item->last_data.val_f.value_dec		= 0;
 		/* As "lower_limit" is a union, we need just to set the "biggest" member */
-		item->config.lower_limit.val_f.multiplier	= 1;
 		item->config.lower_limit.val_f.value_int	= 0;
 		item->config.lower_limit.val_f.value_dec	= 0;
 		/* As "upper_limit" is a union, we need just to set the "biggest" member */
-		item->config.upper_limit.val_f.multiplier	= 1;
 		item->config.upper_limit.val_f.value_int	= 0;
 		item->config.upper_limit.val_f.value_dec	= 0;
 		item->last_value_raw				= NULL;
@@ -174,15 +171,12 @@ int8_t knot_thing_register_data_item(uint8_t id, const char *name,
 	item->config.event_flags			= KNOT_EVT_FLAG_TIME;
 	item->config.time_sec 				= 30;
 	/* As "last_data" is a union, we need just to set the "biggest" member */
-	item->last_data.val_f.multiplier		= 1;
 	item->last_data.val_f.value_int			= 0;
 	item->last_data.val_f.value_dec			= 0;
 	/* As "lower_limit" is a union, we need just to set the "biggest" member */
-	item->config.lower_limit.val_f.multiplier	= 1;
 	item->config.lower_limit.val_f.value_int	= 0;
 	item->config.lower_limit.val_f.value_dec	= 0;
 	/* As "upper_limit" is a union, we need just to set the "biggest" member */
-	item->config.upper_limit.val_f.multiplier	= 1;
 	item->config.upper_limit.val_f.value_int	= 0;
 	item->config.upper_limit.val_f.value_dec	= 0;
 	item->last_value_raw				= NULL;
@@ -303,8 +297,7 @@ int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
 
 		if (item->functions.float_f.read(
 			&(data->payload.val_f.value_int),
-			&(data->payload.val_f.value_dec),
-			&(data->payload.val_f.multiplier)) < 0)
+			&(data->payload.val_f.value_dec)) < 0)
 			return -1;
 
 		data->hdr.payload_len += sizeof(knot_value_type_float);
@@ -370,8 +363,7 @@ int knot_thing_data_item_write(uint8_t id, knot_msg_data *data)
 
 		ret_val = item->functions.float_f.write(
 					&data->payload.val_f.value_int,
-					&data->payload.val_f.value_dec,
-					&data->payload.val_f.multiplier);
+					&data->payload.val_f.value_dec);
 		if (ret_val < 0)
 			break;
 
@@ -484,7 +476,6 @@ int knot_thing_verify_events(knot_msg_data *data)
 
 		last->val_f.value_int = data->payload.val_f.value_int;
 		last->val_f.value_dec = data->payload.val_f.value_dec;
-		last->val_f.multiplier = data->payload.val_f.multiplier;
 		break;
 	default:
 		// This data item is not registered with a valid value type
