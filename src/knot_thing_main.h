@@ -16,7 +16,7 @@ extern "C" {
 
 #include "knot_thing_protocol.h"
 
-typedef int (*intDataFunction)		(int32_t *val, int32_t *multiplier);
+typedef int (*intDataFunction)		(int32_t *val);
 typedef int (*floatDataFunction)	(int32_t *val_int, uint32_t *val_dec, int32_t *multiplier);
 typedef int (*boolDataFunction)		(uint8_t *val);
 
