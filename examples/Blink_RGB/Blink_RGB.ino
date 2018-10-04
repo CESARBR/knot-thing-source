@@ -35,16 +35,15 @@ static int32_t red_led = 0;
 static int32_t green_led = 0;
 static int32_t blue_led = 0;
 
-static int red_read(int32_t *val, int32_t *multiplier)
+static int red_read(int32_t *val)
 {
     *val = red_led;
     Serial.print(F("RED LED: "));
     Serial.println(*val);
-    *multiplier = 1;
     return 0;
 }
 
-static int red_write(int32_t *val, int32_t *multiplier)
+static int red_write(int32_t *val)
 {
     *val = *val%256;
     red_led = *val;
@@ -56,16 +55,16 @@ static int red_write(int32_t *val, int32_t *multiplier)
     return 0;
 }
 
-static int green_read(int32_t *val, int32_t *multiplier)
+static int green_read(int32_t *val)
 {
     *val = green_led;
     Serial.print(F("GREEN LED: "));
     Serial.println(*val);
-    *multiplier = 1;
+
     return 0;
 }
 
-static int green_write(int32_t *val, int32_t *multiplier)
+static int green_write(int32_t *val)
 {
     *val = *val%256;
     green_led = *val;
@@ -77,16 +76,15 @@ static int green_write(int32_t *val, int32_t *multiplier)
     return 0;
 }
 
-static int blue_read(int32_t *val, int32_t *multiplier)
+static int blue_read(int32_t *val)
 {
     *val = blue_led;
     Serial.print(F("BLUE LED: "));
     Serial.println(*val);
-    *multiplier = 1;
     return 0;
 }
 
-static int blue_write(int32_t *val, int32_t *multiplier)
+static int blue_write(int32_t *val)
 {
     *val = *val%256;
     green_led = *val;

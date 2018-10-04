@@ -66,7 +66,7 @@ static float get_weight(byte times)
     return raw_kg;
 }
 
-static int scale_read(int32_t *val_int, int32_t *multiplier)
+static int scale_read(int32_t *val_int)
 {
     unsigned long currentMillis;
     int button_value_current =  digitalRead(BUTTON_PIN);
@@ -101,12 +101,11 @@ static int scale_read(int32_t *val_int, int32_t *multiplier)
 
     Serial.print(F("Scale: "));
     Serial.println(*val_int);
-    *multiplier = 1;
 
     return 0;
 }
 
-static int scale_write(int32_t *val_int, int32_t *multiplier)
+static int scale_write(int32_t *val_int)
 {
     float new_offset;
 

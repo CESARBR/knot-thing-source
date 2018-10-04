@@ -25,17 +25,16 @@ KNoTThing thing;
 
 static int32_t speed_value = 0;
 
-static int speed_read(int32_t *val, int32_t *multiplier)
+static int speed_read(int32_t *val)
 {
 
     *val = speed_value++;
-    *multiplier = 1;
     Serial.print(F("speed_read(): "));
     Serial.println(*val);
     return 0;
 }
 
-static int speed_write(int32_t *val, int32_t *multiplier)
+static int speed_write(int32_t *val)
 {
     speed_value = *val;
     Serial.print(F("speed_write(): "));

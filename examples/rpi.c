@@ -32,16 +32,14 @@ static void sig_term(int sig)
 	g_main_loop_quit(main_loop);
 }
 
-static int speed_read(int32_t *val, int32_t *multiplier)
+static int speed_read(int32_t *val)
 {
-
 	*val = speed_value++;
-	*multiplier = 1;
 	printf("speed_read(): %d\n", *val);
 	return 0;
 }
 
-static int speed_write(int32_t *val, int32_t *multiplier)
+static int speed_write(int32_t *val)
 {
 	speed_value = *val;
 	printf("speed_write(): %d\n", *val);
@@ -73,10 +71,8 @@ int main(int argc, char *argv[])
 	functions.int_f.write = NULL;
 
 	knot_data_values lower_limit, upper_limit;
-	lower_limit.value_i.value = 5;
-	lower_limit.value_i.multiplier = 1;
-	upper_limit.value_i.value = 10;
-	upper_limit.value_i.multiplier = 1;
+	lower_limit.value_i = 5
+	upper_limit.value_i = 10;
 
 	signal(SIGTERM, sig_term);
 	signal(SIGINT, sig_term);
