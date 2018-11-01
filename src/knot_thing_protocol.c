@@ -236,7 +236,7 @@ static int send_unregister(void)
 	msg.hdr.type = KNOT_MSG_UNREGISTER_RESP;
 	msg.hdr.payload_len = 0;
 
-	if (hal_comm_write(cli_sock, &(msg.buffer),
+	if (hal_comm_write(cli_sock, &msg,
 			   sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
@@ -261,7 +261,7 @@ static int send_register(void)
 	strncpy(msg.reg.devName, config.name, name_len);
 	msg.hdr.payload_len = name_len + sizeof(msg.reg.id);
 
-	if (hal_comm_write(cli_sock, &(msg.buffer),
+	if (hal_comm_write(cli_sock, &msg,
 			   sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
@@ -272,7 +272,7 @@ static int read_register(void)
 {
 	ssize_t nbytes;
 
-	nbytes = hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE);
+	nbytes = hal_comm_read(cli_sock, &msg, sizeof(msg));
 	if (nbytes <= 0)
 		return nbytes;
 
@@ -297,7 +297,7 @@ static int read_auth(void)
 {
 	ssize_t nbytes;
 
-	nbytes = hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE);
+	nbytes = hal_comm_read(cli_sock, &msg, sizeof(msg));
 	if (nbytes <= 0)
 		return nbytes;
 
@@ -324,7 +324,7 @@ static int send_schema(void)
 	if (schema_status < 0)
 		return schema_status;
 
-	if (hal_comm_write(cli_sock, &(msg.buffer),
+	if (hal_comm_write(cli_sock, &msg,
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		/* TODO create a better error define in the protocol */
 		return KNOT_ERROR_UNKNOWN;
@@ -348,7 +348,7 @@ static int msg_set_config(uint8_t sensor_id)
 	msg.hdr.type = KNOT_MSG_CONFIG_RESP;
 	msg.hdr.payload_len = sizeof(msg.item.sensor_id);
 
-	if (hal_comm_write(cli_sock, &(msg.buffer),
+	if (hal_comm_write(cli_sock, &msg,
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
@@ -370,7 +370,7 @@ static int msg_set_data(uint8_t sensor_id)
 	if (err < 0)
 		msg.hdr.type = KNOT_ERROR_UNKNOWN;
 
-	if (hal_comm_write(cli_sock, &(msg.buffer),
+	if (hal_comm_write(cli_sock, &msg,
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
@@ -391,7 +391,7 @@ static int msg_get_data(uint8_t sensor_id)
 
 	msg.data.sensor_id = sensor_id;
 
-	if (hal_comm_write(cli_sock, &(msg.buffer),
+	if (hal_comm_write(cli_sock, &msg,
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		return -1;
 
@@ -429,7 +429,7 @@ static int8_t mgmt_read(void)
 
 static void read_online_messages(void)
 {
-	if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) <= 0)
+	if (hal_comm_read(cli_sock, &msg, sizeof(msg)) <= 0)
 		return;
 
 	/* There is a message to read */
@@ -536,7 +536,7 @@ int knot_thing_protocol_run(void)
 			msg.hdr.payload_len = KNOT_PROTOCOL_UUID_LEN +
 						KNOT_PROTOCOL_TOKEN_LEN;
 
-			if (hal_comm_write(cli_sock, &(msg.buffer),
+			if (hal_comm_write(cli_sock, &msg,
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 				run_state = STATE_ERROR;
 		} else {
@@ -624,7 +624,7 @@ int knot_thing_protocol_run(void)
 	case STATE_SCHEMA_RESP:
 		led_status(BLINK_STABLISHING);
 		hal_log_str("SCH_R");
-		if (hal_comm_read(cli_sock, &(msg.buffer), KNOT_MSG_SIZE) > 0) {
+		if (hal_comm_read(cli_sock, &msg, sizeof(msg)) > 0) {
 			if (msg.hdr.type == KNOT_MSG_UNREGISTER_REQ) {
 				send_unregister();
 				break;
@@ -670,10 +670,10 @@ int knot_thing_protocol_run(void)
 		read_online_messages();
 		/* If some event ocurred send msg_data */
 		if (knot_thing_verify_events(&(msg.data)) == 0) {
-			if (hal_comm_write(cli_sock, &(msg.buffer),
+			if (hal_comm_write(cli_sock, &msg,
 			sizeof(msg.hdr) + msg.hdr.payload_len) < 0) {
 				hal_log_str("DT ERR");
-				hal_comm_write(cli_sock, &(msg.buffer),
+				hal_comm_write(cli_sock, &msg,
 					sizeof(msg.hdr) + msg.hdr.payload_len);
 			} else {
 				hal_log_str("DT");
