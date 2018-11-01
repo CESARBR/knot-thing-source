@@ -392,7 +392,7 @@ int knot_thing_verify_events(knot_msg_data *data)
 	if (item->id == 0)
 		goto none;
 
-	data->hdr.type = KNOT_MSG_DATA;
+	data->hdr.type = KNOT_MSG_PUSH_DATA_REQ;
 	data->sensor_id = item->id;
 
 	if (knot_thing_data_item_read(item->id, data) < 0)

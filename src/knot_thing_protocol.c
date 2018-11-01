@@ -365,7 +365,7 @@ static int msg_set_data(uint8_t sensor_id)
 	 * GW must be aware if the data was succesfully set, so we resend
 	 * the request only changing the header type
 	 */
-	msg.hdr.type = KNOT_MSG_DATA_RESP;
+	msg.hdr.type = KNOT_MSG_PUSH_DATA_RSP;
 	/* TODO: Improve error handling: Sensor not found, invalid data, etc */
 	if (err < 0)
 		msg.hdr.type = KNOT_ERROR_UNKNOWN;
@@ -385,7 +385,7 @@ static int msg_get_data(uint8_t sensor_id)
 	if (err == -2)
 		return err;
 
-	msg.hdr.type = KNOT_MSG_DATA;
+	msg.hdr.type = KNOT_MSG_PUSH_DATA_REQ;
 	if (err < 0)
 		msg.hdr.type = KNOT_ERROR_UNKNOWN;
 
@@ -446,7 +446,7 @@ static void read_online_messages(void)
 		msg_get_data(msg.item.sensor_id);
 		break;
 
-	case KNOT_MSG_DATA_RESP:
+	case KNOT_MSG_PUSH_DATA_RSP:
 		hal_log_str("DT RSP");
 		if (msg.action.result != KNOT_SUCCESS) {
 			hal_log_str("DT R ERR");
