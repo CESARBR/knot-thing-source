@@ -8,6 +8,7 @@
  */
 
 #include <stdint.h>
+#include <stdarg.h>
 
 #include "KNoTThing.h"
 
@@ -81,18 +82,65 @@ void KNoTThing::run()
 	knot_thing_run();
 }
 
-int KNoTThing::registerDefaultConfig(uint8_t sensor_id, uint8_t event_flags,
-		uint16_t time_sec, int32_t upper_int, uint32_t upper_dec,
-		int32_t lower_int, uint32_t lower_dec)
+int KNoTThing::registerDefaultConfig(uint8_t sensor_id, ...)
 {
-	knot_value_type lower;
-	knot_value_type upper;
+	va_list event_args;
 
-	lower.val_f.value_int = lower_int;
-	lower.val_f.value_dec = lower_dec;
-	upper.val_f.value_int = upper_int;
-	upper.val_f.value_dec = upper_dec;
+	uint8_t event;
+	uint8_t value_type;
+	uint8_t event_flags = KNOT_EVT_FLAG_NONE;
+	uint16_t time_sec = 0;
+	knot_value_type lower_limit;
+	knot_value_type upper_limit;
+
+	lower_limit.val_i = 0;
+	upper_limit.val_i = 0;
+
+	value_type = knot_thing_get_value_type(sensor_id);
+
+	if(value_type < 0)
+		return -1;
+
+	/* Read arguments and set event_flags */
+	va_start(event_args, sensor_id);
+	do {
+		event = (uint8_t) va_arg(event_args, int);
+		switch(event) {
+		case KNOT_EVT_FLAG_NONE:
+			break;
+		case KNOT_EVT_FLAG_CHANGE:
+			event_flags |= KNOT_EVT_FLAG_CHANGE;
+			break;
+		case KNOT_EVT_FLAG_TIME:
+			time_sec = (uint16_t) va_arg(event_args, int);
+			event_flags |= KNOT_EVT_FLAG_TIME;
+			break;
+		case KNOT_EVT_FLAG_UPPER_THRESHOLD:
+			if(value_type == KNOT_VALUE_TYPE_INT)
+				upper_limit.val_i = (int32_t) va_arg(event_args,
+							 int);
+			if(value_type == KNOT_VALUE_TYPE_FLOAT)
+				upper_limit.val_f = (float) va_arg(event_args,
+							 double);
+			event_flags |= KNOT_EVT_FLAG_UPPER_THRESHOLD;
+			break;
+		case KNOT_EVT_FLAG_LOWER_THRESHOLD:
+			if(value_type == KNOT_VALUE_TYPE_INT)
+				lower_limit.val_i = (int32_t) va_arg(event_args,
+							 int);
+			if(value_type == KNOT_VALUE_TYPE_FLOAT)
+				lower_limit.val_f = (float) va_arg(event_args,
+							 double);
+			event_flags |= KNOT_EVT_FLAG_LOWER_THRESHOLD;
+			break;
+		default:
+			va_end(event_args);
+			return -1;
+		}
+
+	} while(event);
+	va_end(event_args);
 
 	return knot_thing_config_data_item(sensor_id, event_flags, time_sec,
-								&lower, &upper);
+						&lower_limit, &upper_limit);
 }

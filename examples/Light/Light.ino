@@ -55,7 +55,7 @@ void setup()
         KNOT_UNIT_NOT_APPLICABLE, light_read, light_write);
 
     /* Send data every 10 seconds*/
-    thing.registerDefaultConfig(LIGHT_BULB_ID, KNOT_EVT_FLAG_TIME, 10, 0, 0, 0, 0);
+    thing.registerDefaultConfig(LIGHT_BULB_ID, KNOT_EVT_FLAG_TIME, 10, NULL);
 
     Serial.println(F("Remote Light Bulb KNoT Demo"));
 }

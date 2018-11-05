@@ -509,3 +509,13 @@ uint8_t knot_thing_get_sensor_id(const uint8_t index)
 	}
 	return data_items[index].id;
 }
+
+uint8_t knot_thing_get_value_type(const uint8_t sensor_id)
+{
+	struct _data_items *item = find_item(sensor_id);
+
+	if(!item)
+		return -1;
+
+	return item->value_type;
+}

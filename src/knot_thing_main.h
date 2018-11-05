@@ -87,6 +87,9 @@ int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
 /* Find id for item in given index. Returns 0 if index is out of boundaries */
 uint8_t knot_thing_get_sensor_id(const uint8_t index);
 
+/* Get value type for given sensor id. Returns -1 if id is not registered */
+uint8_t knot_thing_get_value_type(const uint8_t sensor_id);
+
 #ifdef __cplusplus
 }
 #endif

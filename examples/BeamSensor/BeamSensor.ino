@@ -57,9 +57,9 @@ void setup()
 			beam_read_2, NULL);
 
 	/*Every time the Beam sensor changes its value, it send data*/
-	thing.registerDefaultConfig(BEAM_SENSOR_1_ID, KNOT_EVT_FLAG_CHANGE, 0, 0, 0, 0, 0);
+	thing.registerDefaultConfig(BEAM_SENSOR_1_ID, KNOT_EVT_FLAG_CHANGE, NULL);
 
-	thing.registerDefaultConfig(BEAM_SENSOR_2_ID, KNOT_EVT_FLAG_CHANGE, 0, 0, 0, 0, 0);
+	thing.registerDefaultConfig(BEAM_SENSOR_2_ID, KNOT_EVT_FLAG_CHANGE, NULL);
 
 	Serial.println(F("Beam Sensor KNoT Demo"));
 }
