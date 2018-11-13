@@ -36,8 +36,8 @@
 #define STATE_CONNECTED			2
 #define STATE_AUTHENTICATING		3
 #define STATE_REGISTERING		4
-#define STATE_SCHEMA			5
-#define STATE_SCHEMA_RESP		6
+#define STATE_SCHM			5
+#define STATE_SCHM_RSP		6
 #define STATE_ONLINE			7
 #define STATE_RUNNING			8
 #define STATE_ERROR			9
@@ -232,8 +232,8 @@ static void led_status(uint8_t status)
 
 static int send_unregister(void)
 {
-	/* send KNOT_MSG_UNREGISTER_RESP message */
-	msg.hdr.type = KNOT_MSG_UNREGISTER_RESP;
+	/* send KNOT_MSG_UNREG_RSP message */
+	msg.hdr.type = KNOT_MSG_UNREG_RSP;
 	msg.hdr.payload_len = 0;
 
 	if (hal_comm_write(cli_sock, &msg,
@@ -248,7 +248,7 @@ static int send_unregister(void)
 static int send_register(void)
 {
 	/*
-	 * KNOT_MSG_REGISTER_REQ PDU should fit in nRF24 MTU in order
+	 * KNOT_MSG_REG_REQ PDU should fit in nRF24 MTU in order
 	 * to avoid frame segmentation. Re-transmission may happen
 	 * frequently at noisy environments or if the remote is not ready.
 	 */
@@ -256,7 +256,7 @@ static int send_register(void)
 						sizeof(msg.reg.id));
 
 	name_len = MIN(name_len, strlen(config.name));
-	msg.hdr.type = KNOT_MSG_REGISTER_REQ;
+	msg.hdr.type = KNOT_MSG_REG_REQ;
 	msg.reg.id = config.mac.address.uint64; /* Maps id to nRF24 MAC */
 	strncpy(msg.reg.devName, config.name, name_len);
 	msg.hdr.payload_len = name_len + sizeof(msg.reg.id);
@@ -276,14 +276,14 @@ static int read_register(void)
 	if (nbytes <= 0)
 		return nbytes;
 
-	if (msg.hdr.type == KNOT_MSG_UNREGISTER_REQ) {
+	if (msg.hdr.type == KNOT_MSG_UNREG_REQ) {
 		return send_unregister();
 	}
 
-	if (msg.hdr.type != KNOT_MSG_REGISTER_RESP)
+	if (msg.hdr.type != KNOT_MSG_REG_RSP)
 		return -1;
 
-	if (msg.cred.result != KNOT_SUCCESS)
+	if (msg.cred.result != 0)
 		return -1;
 
 	hal_storage_write_end(HAL_STORAGE_ID_UUID, msg.cred.uuid,
@@ -301,14 +301,14 @@ static int read_auth(void)
 	if (nbytes <= 0)
 		return nbytes;
 
-	if (msg.hdr.type == KNOT_MSG_UNREGISTER_REQ) {
+	if (msg.hdr.type == KNOT_MSG_UNREG_REQ) {
 		return send_unregister();
 	}
 
-	if (msg.hdr.type != KNOT_MSG_AUTH_RESP)
+	if (msg.hdr.type != KNOT_MSG_AUTH_RSP)
 		return -1;
 
-	if (msg.action.result != KNOT_SUCCESS)
+	if (msg.action.result != 0)
 		return -1;
 
 	return 0;
@@ -327,9 +327,9 @@ static int send_schema(void)
 	if (hal_comm_write(cli_sock, &msg,
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
 		/* TODO create a better error define in the protocol */
-		return KNOT_ERROR_UNKNOWN;
+		return KNOT_ERR_PERM;
 
-	return KNOT_SUCCESS;
+	return 0;
 }
 
 static int msg_set_config(uint8_t sensor_id)
@@ -342,10 +342,10 @@ static int msg_set_config(uint8_t sensor_id)
 					&(msg.config.values.lower_limit),
 					&(msg.config.values.upper_limit));
 	if (err)
-		return KNOT_ERROR_UNKNOWN;
+		return KNOT_ERR_PERM;
 
 	msg.item.sensor_id = sensor_id;
-	msg.hdr.type = KNOT_MSG_CONFIG_RESP;
+	msg.hdr.type = KNOT_MSG_PUSH_CONFIG_RSP;
 	msg.hdr.payload_len = sizeof(msg.item.sensor_id);
 
 	if (hal_comm_write(cli_sock, &msg,
@@ -368,7 +368,7 @@ static int msg_set_data(uint8_t sensor_id)
 	msg.hdr.type = KNOT_MSG_PUSH_DATA_RSP;
 	/* TODO: Improve error handling: Sensor not found, invalid data, etc */
 	if (err < 0)
-		msg.hdr.type = KNOT_ERROR_UNKNOWN;
+		msg.hdr.type = KNOT_ERR_INVALID;
 
 	if (hal_comm_write(cli_sock, &msg,
 				sizeof(msg.hdr) + msg.hdr.payload_len) < 0)
@@ -387,7 +387,7 @@ static int msg_get_data(uint8_t sensor_id)
 
 	msg.hdr.type = KNOT_MSG_PUSH_DATA_REQ;
 	if (err < 0)
-		msg.hdr.type = KNOT_ERROR_UNKNOWN;
+		msg.hdr.type = KNOT_ERR_PERM;
 
 	msg.data.sensor_id = sensor_id;
 
@@ -434,26 +434,26 @@ static void read_online_messages(void)
 
 	/* There is a message to read */
 	switch (msg.hdr.type) {
-	case KNOT_MSG_SET_CONFIG:
+	case KNOT_MSG_PUSH_CONFIG_REQ:
 		msg_set_config(msg.config.sensor_id);
 		break;
 
-	case KNOT_MSG_SET_DATA:
+	case KNOT_MSG_PUSH_DATA_REQ:
 		msg_set_data(msg.data.sensor_id);
 		break;
 
-	case KNOT_MSG_GET_DATA:
+	case KNOT_MSG_POLL_DATA_REQ:
 		msg_get_data(msg.item.sensor_id);
 		break;
 
 	case KNOT_MSG_PUSH_DATA_RSP:
 		hal_log_str("DT RSP");
-		if (msg.action.result != KNOT_SUCCESS) {
+		if (msg.action.result != 0) {
 			hal_log_str("DT R ERR");
 			msg_get_data(msg.item.sensor_id);
 		}
 		break;
-	case KNOT_MSG_UNREGISTER_REQ:
+	case KNOT_MSG_UNREG_REQ:
 		send_unregister();
 		break;
 	default:
@@ -556,14 +556,14 @@ int knot_thing_protocol_run(void)
 	case STATE_AUTHENTICATING:
 		led_status(BLINK_STABLISHING);
 		retval = read_auth();
-		if (retval == KNOT_SUCCESS) {
+		if (retval == 0) {
 			run_state = STATE_ONLINE;
 			hal_log_str("ONLN");
 			/* Checks if all the schemas were sent to the GW and */
 			hal_storage_read_end(HAL_STORAGE_ID_SCHEMA_FLAG,
 					&schema_flag, sizeof(schema_flag));
 			if (!schema_flag)
-				run_state = STATE_SCHEMA;
+				run_state = STATE_SCHM;
 		}
 		else if (retval != -EAGAIN)
 			halt_blinking_led(AUTH_ERROR);
@@ -576,7 +576,7 @@ int knot_thing_protocol_run(void)
 		led_status(BLINK_STABLISHING);
 		retval = read_register();
 		if (!retval)
-			run_state = STATE_SCHEMA;
+			run_state = STATE_SCHM;
 		else if (retval != -EAGAIN)
 			run_state = STATE_ERROR;
 		else if (hal_timeout(hal_time_ms(), last_timeout,
@@ -585,27 +585,27 @@ int knot_thing_protocol_run(void)
 		break;
 
 	/*
-	 * STATE_SCHEMA tries to send an schema and go to STATE_SCHEMA_RESP to
+	 * STATE_SCHM tries to send an schema and go to STATE_SCHM_RSP to
 	 * wait for the ack of this schema. If there is no schema for that
-	 * msg_sensor_index, increments and stays in the STATE_SCHEMA. If an
+	 * msg_sensor_index, increments and stays in the STATE_SCHM. If an
 	 * error occurs, goes to STATE_ERROR.
 	 */
-	case STATE_SCHEMA:
+	case STATE_SCHM:
 		led_status(BLINK_STABLISHING);
 		hal_log_str("SCH");
 		retval = send_schema();
 		switch (retval) {
-		case KNOT_SUCCESS:
+		case 0:
 			last_timeout = hal_time_ms();
-			run_state = STATE_SCHEMA_RESP;
+			run_state = STATE_SCHM_RSP;
 			break;
-		case KNOT_ERROR_UNKNOWN:
+		case KNOT_ERR_PERM:
 			run_state = STATE_ERROR;
 			msg_sensor_index = 0;
 			break;
-		case KNOT_SCHEMA_EMPTY:
-		case KNOT_INVALID_DEVICE:
-			run_state = STATE_SCHEMA;
+		case KNOT_ERR_SCHEMA_EMPTY:
+		case KNOT_ERR_INVALID:
+			run_state = STATE_SCHM;
 			msg_sensor_index++;
 			break;
 		default:
@@ -616,28 +616,28 @@ int knot_thing_protocol_run(void)
 		break;
 
 	/*
-	 * Receives the ack from the GW and returns to STATE_SCHEMA to send the
+	 * Receives the ack from the GW and returns to STATE_SCHM to send the
 	 * next schema. If it was the ack for the last schema, goes to
-	 * STATE_ONLINE. If it is not a KNOT_MSG_SCHEMA_RESP, ignores. If the
-	 * result was not KNOT_SUCCESS, goes to STATE_ERROR.
+	 * STATE_ONLINE. If it is not a KNOT_MSG_SCHM_FRAG_RSP, ignores. If the
+	 * result was not 0, goes to STATE_ERROR.
 	 */
-	case STATE_SCHEMA_RESP:
+	case STATE_SCHM_RSP:
 		led_status(BLINK_STABLISHING);
 		hal_log_str("SCH_R");
 		if (hal_comm_read(cli_sock, &msg, sizeof(msg)) > 0) {
-			if (msg.hdr.type == KNOT_MSG_UNREGISTER_REQ) {
+			if (msg.hdr.type == KNOT_MSG_UNREG_REQ) {
 				send_unregister();
 				break;
 			}
-			if (msg.hdr.type != KNOT_MSG_SCHEMA_RESP &&
-				msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP)
+			if (msg.hdr.type != KNOT_MSG_SCHM_FRAG_RSP &&
+				msg.hdr.type != KNOT_MSG_SCHM_END_RSP)
 				break;
-			if (msg.action.result != KNOT_SUCCESS) {
-				run_state = STATE_SCHEMA;
+			if (msg.action.result != 0) {
+				run_state = STATE_SCHM;
 				break;
 			}
-			if (msg.hdr.type != KNOT_MSG_SCHEMA_END_RESP) {
-				run_state = STATE_SCHEMA;
+			if (msg.hdr.type != KNOT_MSG_SCHM_END_RSP) {
+				run_state = STATE_SCHM;
 				msg_sensor_index++;
 				break;
 			}
@@ -650,7 +650,7 @@ int knot_thing_protocol_run(void)
 			msg_sensor_index = 0;
 		} else if (hal_timeout(hal_time_ms(), last_timeout,
 						RETRANSMISSION_TIMEOUT) > 0)
-			run_state = STATE_SCHEMA;
+			run_state = STATE_SCHM;
 		break;
 
 	case STATE_ONLINE:

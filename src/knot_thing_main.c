@@ -190,7 +190,7 @@ int knot_thing_config_data_item(uint8_t id, uint8_t evflags, uint16_t time_sec,
 
 	/*Check if config is valid*/
 	if (knot_config_is_valid(evflags, item->value_type,
-				 time_sec, lower, upper) != KNOT_SUCCESS)
+				 time_sec, lower, upper) != 0)
 		return -1;
 
 	if (!item)
@@ -218,13 +218,13 @@ int knot_thing_create_schema(uint8_t index, knot_msg_schema *msg)
 	struct _data_items *item;
 
 	if (index > last_item)
-		return KNOT_INVALID_DEVICE;
+		return KNOT_ERR_INVALID;
 
 	item = data_items + index;
 	if (item->id == 0)
-		return KNOT_INVALID_DEVICE;
+		return KNOT_ERR_INVALID;
 
-	msg->hdr.type = KNOT_MSG_SCHEMA;
+	msg->hdr.type = KNOT_MSG_SCHM_FRAG_REQ;
 
 	msg->sensor_id = item->id;
 	msg->values.value_type = item->value_type;
@@ -236,9 +236,9 @@ int knot_thing_create_schema(uint8_t index, knot_msg_schema *msg)
 
 	/* Send 'end' for the last item (sensor or actuator). */
 	if (index == last_item)
-		msg->hdr.type = KNOT_MSG_SCHEMA_END;
+		msg->hdr.type = KNOT_MSG_SCHM_END_REQ;
 
-	return KNOT_SUCCESS;
+	return 0;
 }
 
 int knot_thing_data_item_read(uint8_t id, knot_msg_data *data)
