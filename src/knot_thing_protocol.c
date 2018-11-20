@@ -603,7 +603,6 @@ int knot_thing_protocol_run(void)
 			run_state = STATE_ERROR;
 			msg_sensor_index = 0;
 			break;
-		case KNOT_ERR_SCHEMA_EMPTY:
 		case KNOT_ERR_INVALID:
 			run_state = STATE_SCHM;
 			msg_sensor_index++;
